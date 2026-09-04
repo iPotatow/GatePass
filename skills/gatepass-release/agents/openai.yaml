@@ -1,0 +1,7 @@
+interface:
+  display_name: "GatePass Release"
+  short_description: "GatePass release workflow with CI and GitHub Release checks"
+  default_prompt: "Use $gatepass-release to prepare, publish, or audit a GatePass release from main."
+
+policy:
+  allow_implicit_invocation: true

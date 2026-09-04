@@ -1,0 +1,76 @@
+name: System Preferences CI
+
+# Validates the curated production System Preferences catalog and behavioral-evidence policy.
+on:
+  push:
+    branches:
+      - main
+      - feat/system-optimization-aa
+    paths:
+      - GatePass/Features/SystemPreferences/**
+      - Tests/SystemPreferencesCoreTests.swift
+      - .github/workflows/system-preferences-ci.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - GatePass/Features/SystemPreferences/**
+      - Tests/SystemPreferencesCoreTests.swift
+      - .github/workflows/system-preferences-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-core-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-14
+          - macos-15
+          - macos-26
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Show environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build GatePass for macOS 13 deployment target
+        if: matrix.os != 'macos-14'
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project GatePass.xcodeproj \
+            -target GatePass \
+            -configuration Debug \
+            MACOSX_DEPLOYMENT_TARGET=13.0 \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty
+
+      - name: Explain macOS 14 project-build skip
+        if: matrix.os == 'macos-14'
+        run: |
+          echo "macOS 14 hosted runner currently ships Xcode 15.4, which cannot open this project's Xcode objectVersion 70."
+          echo "The System Preferences production sources and real defaults integration tests are still compiled and executed on macOS 14 below."
+
+      - name: Compile System Preferences regression suite
+        run: |
+          xcrun swiftc -parse-as-library \
+            Tests/SystemPreferencesCoreTests.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceModels.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceMetadata.swift \
+            GatePass/Features/SystemPreferences/MacSystemPreferencesCatalog.swift \
+            GatePass/Features/SystemPreferences/SystemDefaultsClient.swift \
+            GatePass/Features/SystemPreferences/SystemPreferencesEngine.swift \
+            -o /tmp/system-preferences-core-tests
+
+      - name: Run System Preferences regression suite
+        run: /tmp/system-preferences-core-tests

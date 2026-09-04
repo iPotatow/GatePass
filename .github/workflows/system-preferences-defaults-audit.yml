@@ -1,0 +1,51 @@
+name: System Preferences Defaults Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/system-optimization-aa
+    paths:
+      - Tests/SystemPreferencesDefaultsAudit.swift
+      - .github/workflows/system-preferences-defaults-audit.yml
+      - GatePass/Features/SystemPreferences/SystemPreferenceModels.swift
+      - GatePass/Features/SystemPreferences/SystemPreferenceMetadata.swift
+      - GatePass/Features/SystemPreferences/MacSystemPreferencesCatalog.swift
+      - GatePass/Features/SystemPreferences/SystemDefaultsClient.swift
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-14
+          - macos-15
+          - macos-26
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Show environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Compile production catalog audit
+        run: |
+          xcrun swiftc -parse-as-library \
+            Tests/SystemPreferencesDefaultsAudit.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceModels.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceMetadata.swift \
+            GatePass/Features/SystemPreferences/MacSystemPreferencesCatalog.swift \
+            GatePass/Features/SystemPreferences/SystemDefaultsClient.swift \
+            -o /tmp/system-preferences-defaults-audit
+
+      - name: Audit every production preference and restore original values
+        run: /tmp/system-preferences-defaults-audit

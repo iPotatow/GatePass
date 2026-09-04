@@ -1,0 +1,8 @@
+.DS_Store
+*.xcuserstate
+Builds/
+.build/
+.claude/
+/AGENTS.md
+**/xcuserdata/
+**/IDEWorkspaceChecks.plist

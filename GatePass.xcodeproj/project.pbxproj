@@ -1,0 +1,441 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4180AEAE2839753E0054FEA9 /* GatePassApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4180AEAD2839753E0054FEA9 /* GatePassApp.swift */; };
+		4180AEEB2839A0280054FEA9 /* AboutCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4180AEEA2839A0280054FEA9 /* AboutCommand.swift */; };
+		4180AEFB2839A32F0054FEA9 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4180AEFA2839A32F0054FEA9 /* AboutView.swift */; };
+		C708899C2DB42F8800AC3E2B /* DropDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = C708899B2DB42F8200AC3E2B /* DropDelegates.swift */; };
+		C716BB2D2DB2E255004A78E8 /* Gatekeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = C716BB2C2DB2E251004A78E8 /* Gatekeeper.swift */; };
+		C701A0012F00000100A10001 /* RecentApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = C701A0002F00000100A10001 /* RecentApps.swift */; };
+		C733F76B29CA59AE00DADADD /* Script.swift in Sources */ = {isa = PBXBuildFile; fileRef = C733F76A29CA59AE00DADADD /* Script.swift */; };
+		C733F76F29CA65AC00DADADD /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C733F76E29CA65AC00DADADD /* AppState.swift */; };
+		C7374B672E79C8110015DEED /* GatePass.icon in Resources */ = {isa = PBXBuildFile; fileRef = C7374B662E79C8110015DEED /* GatePass.icon */; };
+
+		C78AAAB32BB33F84002AD918 /* UpdateSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C78AAAB22BB33F84002AD918 /* UpdateSettingsView.swift */; };
+		C78AAAB52BB33F9A002AD918 /* Styles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C78AAAB42BB33F9A002AD918 /* Styles.swift */; };
+		C78AAAB92BB3418E002AD918 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C78AAAB82BB3418E002AD918 /* SettingsWindow.swift */; };
+		D10000000000000000000011 /* GatePassSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* GatePassSupport.swift */; };
+		D10000000000000000000012 /* GatePassUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000002 /* GatePassUpdater.swift */; };
+		C7BB802A29CA28B400006CDB /* Dashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BB802929CA28B400006CDB /* Dashboard.swift */; };
+		C7BB802C29CA299700006CDB /* CmdDrops.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BB802B29CA299700006CDB /* CmdDrops.swift */; };
+		C7BEBE1F2E846A8B00B56DE9 /* GatePass.icon in Resources */ = {isa = PBXBuildFile; fileRef = C7374B662E79C8110015DEED /* GatePass.icon */; };
+		C7BEBE212E846AB400B56DE9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7BEBE202E846AB400B56DE9 /* Assets.xcassets */; };
+		C7FBD9EA2DAD722700151934 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FBD9E92DAD721F00151934 /* GeneralSettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		4180AEAA2839753E0054FEA9 /* GatePass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GatePass.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4180AEAD2839753E0054FEA9 /* GatePassApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatePassApp.swift; sourceTree = "<group>"; };
+		4180AEEA2839A0280054FEA9 /* AboutCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutCommand.swift; sourceTree = "<group>"; };
+		4180AEFA2839A32F0054FEA9 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		C708899B2DB42F8200AC3E2B /* DropDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropDelegates.swift; sourceTree = "<group>"; };
+		C716BB2C2DB2E251004A78E8 /* Gatekeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gatekeeper.swift; sourceTree = "<group>"; };
+		C701A0002F00000100A10001 /* RecentApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentApps.swift; sourceTree = "<group>"; };
+		C733F76A29CA59AE00DADADD /* Script.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Script.swift; sourceTree = "<group>"; };
+		C733F76E29CA65AC00DADADD /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		C7374B662E79C8110015DEED /* GatePass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = GatePass.icon; sourceTree = "<group>"; };
+		C74458652E382D7300B8D6F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C74458722E383D4B00B8D6F1 /* announcements.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = announcements.json; sourceTree = SOURCE_ROOT; };
+		C766D28B2C34D10500F51BB9 /* Builds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Builds; sourceTree = SOURCE_ROOT; };
+		C78AAAB22BB33F84002AD918 /* UpdateSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSettingsView.swift; sourceTree = "<group>"; };
+		C78AAAB42BB33F9A002AD918 /* Styles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Styles.swift; sourceTree = "<group>"; };
+		C78AAAB82BB3418E002AD918 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		D10000000000000000000001 /* GatePassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatePassSupport.swift; sourceTree = "<group>"; };
+		D10000000000000000000002 /* GatePassUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatePassUpdater.swift; sourceTree = "<group>"; };
+		C7BB802929CA28B400006CDB /* Dashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dashboard.swift; sourceTree = "<group>"; };
+		C7BB802B29CA299700006CDB /* CmdDrops.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmdDrops.swift; sourceTree = "<group>"; };
+		C7BEBE202E846AB400B56DE9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C7FBD9E92DAD721F00151934 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E10000000000000000000001 /* Features */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Features; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4180AEA72839753E0054FEA9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4180AEA12839753E0054FEA9 = {
+			isa = PBXGroup;
+			children = (
+				4180AEAC2839753E0054FEA9 /* GatePass */,
+				4180AEAB2839753E0054FEA9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4180AEAB2839753E0054FEA9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4180AEAA2839753E0054FEA9 /* GatePass.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4180AEAC2839753E0054FEA9 /* GatePass */ = {
+			isa = PBXGroup;
+			children = (
+				C74458652E382D7300B8D6F1 /* Info.plist */,
+				C74458722E383D4B00B8D6F1 /* announcements.json */,
+				C7BB802929CA28B400006CDB /* Dashboard.swift */,
+				E10000000000000000000001 /* Features */,
+				C766D28B2C34D10500F51BB9 /* Builds */,
+				C78AAAAD2BB33F2E002AD918 /* Settings */,
+				4180AEEC2839A0560054FEA9 /* Utilities */,
+				4180AEAD2839753E0054FEA9 /* GatePassApp.swift */,
+				C7374B662E79C8110015DEED /* GatePass.icon */,
+				C733F76E29CA65AC00DADADD /* AppState.swift */,
+				C78AAAB42BB33F9A002AD918 /* Styles.swift */,
+				C7BEBE202E846AB400B56DE9 /* Assets.xcassets */,
+			);
+			path = GatePass;
+			sourceTree = "<group>";
+		};
+		4180AEEC2839A0560054FEA9 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				C708899B2DB42F8200AC3E2B /* DropDelegates.swift */,
+				C716BB2C2DB2E251004A78E8 /* Gatekeeper.swift */,
+				C701A0002F00000100A10001 /* RecentApps.swift */,
+				C7BB802B29CA299700006CDB /* CmdDrops.swift */,
+				C733F76A29CA59AE00DADADD /* Script.swift */,
+				4180AEEA2839A0280054FEA9 /* AboutCommand.swift */,
+				D10000000000000000000001 /* GatePassSupport.swift */,
+				D10000000000000000000002 /* GatePassUpdater.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		C78AAAAD2BB33F2E002AD918 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C7FBD9E92DAD721F00151934 /* GeneralSettingsView.swift */,
+				C78AAAB22BB33F84002AD918 /* UpdateSettingsView.swift */,
+				4180AEFA2839A32F0054FEA9 /* AboutView.swift */,
+				C78AAAB82BB3418E002AD918 /* SettingsWindow.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4180AEA92839753E0054FEA9 /* GatePass */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4180AEB92839753F0054FEA9 /* Build configuration list for PBXNativeTarget "GatePass" */;
+			buildPhases = (
+				4180AEA62839753E0054FEA9 /* Sources */,
+				4180AEA72839753E0054FEA9 /* Frameworks */,
+				4180AEA82839753E0054FEA9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E10000000000000000000001 /* Features */,
+			);
+			name = GatePass;
+			productName = SidebarApp;
+			productReference = 4180AEAA2839753E0054FEA9 /* GatePass.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4180AEA22839753E0054FEA9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					4180AEA92839753E0054FEA9 = {
+						CreatedOnToolsVersion = 13.4;
+					};
+				};
+			};
+			buildConfigurationList = 4180AEA52839753F0054FEA9 /* Build configuration list for PBXProject "GatePass" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4180AEA12839753E0054FEA9;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4180AEA92839753E0054FEA9 /* GatePass */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4180AEA82839753E0054FEA9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7BEBE212E846AB400B56DE9 /* Assets.xcassets in Resources */,
+				C7374B672E79C8110015DEED /* GatePass.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4180AEA62839753E0054FEA9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C701A0012F00000100A10001 /* RecentApps.swift in Sources */,
+				C716BB2D2DB2E255004A78E8 /* Gatekeeper.swift in Sources */,
+				4180AEFB2839A32F0054FEA9 /* AboutView.swift in Sources */,
+				C78AAAB32BB33F84002AD918 /* UpdateSettingsView.swift in Sources */,
+				C7FBD9EA2DAD722700151934 /* GeneralSettingsView.swift in Sources */,
+				C733F76F29CA65AC00DADADD /* AppState.swift in Sources */,
+				C708899C2DB42F8800AC3E2B /* DropDelegates.swift in Sources */,
+				C7BB802C29CA299700006CDB /* CmdDrops.swift in Sources */,
+				C78AAAB52BB33F9A002AD918 /* Styles.swift in Sources */,
+				4180AEEB2839A0280054FEA9 /* AboutCommand.swift in Sources */,
+				C733F76B29CA59AE00DADADD /* Script.swift in Sources */,
+				C7BB802A29CA28B400006CDB /* Dashboard.swift in Sources */,
+				4180AEAE2839753E0054FEA9 /* GatePassApp.swift in Sources */,
+				C78AAAB92BB3418E002AD918 /* SettingsWindow.swift in Sources */,
+				D10000000000000000000011 /* GatePassSupport.swift in Sources */,
+				D10000000000000000000012 /* GatePassUpdater.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4180AEB72839753F0054FEA9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4180AEB82839753F0054FEA9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		4180AEBA2839753F0054FEA9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = GatePass;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GatePass/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GatePass;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ipotatow.GatePass;
+				PRODUCT_NAME = GatePass;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4180AEBB2839753F0054FEA9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = GatePass;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GatePass/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GatePass;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ipotatow.GatePass;
+				PRODUCT_NAME = GatePass;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4180AEA52839753F0054FEA9 /* Build configuration list for PBXProject "GatePass" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4180AEB72839753F0054FEA9 /* Debug */,
+				4180AEB82839753F0054FEA9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4180AEB92839753F0054FEA9 /* Build configuration list for PBXNativeTarget "GatePass" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4180AEBA2839753F0054FEA9 /* Debug */,
+				4180AEBB2839753F0054FEA9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 4180AEA22839753E0054FEA9 /* Project object */;
+}
