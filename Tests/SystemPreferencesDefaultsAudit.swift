@@ -67,17 +67,32 @@ struct SystemPreferencesDefaultsAudit {
             return .readFailed
         }
 
-        // Always make a best-effort restoration even if a later step fails.
-        defer {
-            try? client.write(original, definition: definition, timeout: 3)
+        func restoreOriginal() -> Bool {
+            do {
+                try client.write(original, definition: definition, timeout: 3)
+                return try client.read(definition, timeout: 3) == original
+            } catch {
+                return false
+            }
+        }
+
+        func emitRestoreFailure(_ detail: String) -> AuditStatus {
+            emit(definition, .restoreFailed, original: original, detail: detail)
+            return .restoreFailed
         }
 
         do {
             try client.write(definition.recommendedValue, definition: definition, timeout: 3)
         } catch SystemDefaultsClientError.accessDenied {
+            guard restoreOriginal() else {
+                return emitRestoreFailure("restore-after-write-access-denied-failed")
+            }
             emit(definition, .restricted, original: original, detail: "write-access-denied")
             return .restricted
         } catch {
+            guard restoreOriginal() else {
+                return emitRestoreFailure("restore-after-write-failed")
+            }
             emit(definition, .writeFailed, original: original, detail: sanitize(error.localizedDescription))
             return .writeFailed
         }
@@ -85,6 +100,9 @@ struct SystemPreferencesDefaultsAudit {
         do {
             let readBack = try client.read(definition, timeout: 3)
             guard readBack == definition.recommendedValue else {
+                guard restoreOriginal() else {
+                    return emitRestoreFailure("restore-after-readback-mismatch-failed")
+                }
                 emit(
                     definition,
                     .readBackMismatch,
@@ -94,20 +112,15 @@ struct SystemPreferencesDefaultsAudit {
                 return .readBackMismatch
             }
         } catch {
+            guard restoreOriginal() else {
+                return emitRestoreFailure("restore-after-readback-error-failed")
+            }
             emit(definition, .readBackMismatch, original: original, detail: "readback-error=\(sanitize(error.localizedDescription))")
             return .readBackMismatch
         }
 
-        do {
-            try client.write(original, definition: definition, timeout: 3)
-            let restored = try client.read(definition, timeout: 3)
-            guard restored == original else {
-                emit(definition, .restoreFailed, original: original, detail: "restored=\(describe(restored))")
-                return .restoreFailed
-            }
-        } catch {
-            emit(definition, .restoreFailed, original: original, detail: sanitize(error.localizedDescription))
-            return .restoreFailed
+        guard restoreOriginal() else {
+            return emitRestoreFailure("restore-verification-failed")
         }
 
         emit(definition, .pass, original: original, detail: "probe=\(describe(definition.recommendedValue))")

@@ -10,6 +10,50 @@ struct UpdateSettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            GroupBox(gatePassCopy("更新来源", "Update source", language: language)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .center, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(gatePassCopy("下载更新时使用的来源", "Source used for update downloads", language: language))
+                                .font(.callout)
+                            Text(updateSourceDescription)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer()
+
+                        Picker(
+                            gatePassCopy("更新来源", "Update source", language: language),
+                            selection: $updater.updateSource
+                        ) {
+                            Text(gatePassCopy("GitHub", "GitHub", language: language))
+                                .tag(GatePassUpdateSource.github)
+                            Text("gh-proxy.com")
+                                .tag(GatePassUpdateSource.ghProxy)
+                            Text("ghproxy.net")
+                                .tag(GatePassUpdateSource.ghproxyNet)
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 220)
+                    }
+
+                    if updater.updateSource != .github {
+                        Text(gatePassCopy(
+                            "版本信息、安装包和校验文件都会通过所选镜像站获取。",
+                            "Release data, the app archive, and checksum files will use the selected mirror.",
+                            language: language
+                        ))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
+            }
+
             GroupBox(gatePassCopy("自动检查", "Automatic checks", language: language)) {
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 3) {
@@ -69,17 +113,36 @@ struct UpdateSettingsTab: View {
     }
 
     private var updateDescription: String {
+        let source = updater.updateSource.displayName
+
         switch updater.updateFrequency {
         case .none:
-            return gatePassCopy("只在你手动检查时连接 GitHub。", "GitHub is contacted only when you check manually.", language: language)
+            return gatePassCopy("只在你手动检查时连接 \(source)。", "Contact \(source) only when you check manually.", language: language)
         case .daily:
-            return gatePassCopy("每天检查一次是否有新版本。", "Check once a day for a new version.", language: language)
+            return gatePassCopy("每天通过 \(source) 检查一次是否有新版本。", "Check \(source) once a day for a new version.", language: language)
         case .weekly:
-            return gatePassCopy("每周检查一次是否有新版本。", "Check once a week for a new version.", language: language)
+            return gatePassCopy("每周通过 \(source) 检查一次是否有新版本。", "Check \(source) once a week for a new version.", language: language)
         case .monthly:
-            return gatePassCopy("每月检查一次是否有新版本。", "Check once a month for a new version.", language: language)
+            return gatePassCopy("每月通过 \(source) 检查一次是否有新版本。", "Check \(source) once a month for a new version.", language: language)
         @unknown default:
-            return gatePassCopy("按所选频率检查新版本。", "Check for new versions at the selected frequency.", language: language)
+            return gatePassCopy("按所选频率通过 \(source) 检查新版本。", "Check for new versions through \(source) at the selected frequency.", language: language)
+        }
+    }
+
+    private var updateSourceDescription: String {
+        switch updater.updateSource {
+        case .github:
+            return gatePassCopy(
+                "从 GitHub 获取版本信息、安装包和校验文件。",
+                "Get release data, the app archive, and checksum files from GitHub.",
+                language: language
+            )
+        case .ghProxy, .ghproxyNet, .legacyMirror:
+            return gatePassCopy(
+                "通过 \(updater.updateSource.displayName) 获取版本信息、安装包和校验文件。",
+                "Get release data, the app archive, and checksum files through \(updater.updateSource.displayName).",
+                language: language
+            )
         }
     }
 

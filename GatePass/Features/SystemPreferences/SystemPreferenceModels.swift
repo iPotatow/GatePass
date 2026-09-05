@@ -230,7 +230,10 @@ struct SystemPreferencesCatalog: Sendable {
 
 enum SystemPreferenceTargetState: String, Codable, Sendable {
     case optimized
+    /// Disable the feature using the definition's disabledValue (or defaultValue fallback).
     case systemDefault
+    /// Restore the value captured before GatePass optimized the setting.
+    case restoreOriginal
 }
 
 enum SystemPreferenceSkipReason: String, Codable, Sendable {
@@ -295,14 +298,77 @@ struct SystemPreferenceChangeItemResult: Identifiable, Codable, Sendable {
     let failureReason: SystemPreferenceChangeFailureReason?
 }
 
+enum SystemPreferencesBatchStatus: String, Codable, Sendable {
+    case succeeded
+    case partiallyFailed
+    case failed
+    /// A setting write completed, but the recovery document could not be reconciled.
+    case recoveryStateUncertain
+}
+
 struct SystemPreferencesChangeResult: Identifiable, Codable, Sendable {
     let id: UUID
     let planID: UUID
     let createdAt: Date
     let items: [SystemPreferenceChangeItemResult]
+    let skippedItems: [SystemPreferenceSkippedItem]
+    let recoveryPersistenceFailed: Bool
+    let recoveryPersistenceMessage: String?
+
+    init(
+        id: UUID,
+        planID: UUID,
+        createdAt: Date,
+        items: [SystemPreferenceChangeItemResult],
+        skippedItems: [SystemPreferenceSkippedItem] = [],
+        recoveryPersistenceFailed: Bool = false,
+        recoveryPersistenceMessage: String? = nil
+    ) {
+        self.id = id
+        self.planID = planID
+        self.createdAt = createdAt
+        self.items = items
+        self.skippedItems = skippedItems
+        self.recoveryPersistenceFailed = recoveryPersistenceFailed
+        self.recoveryPersistenceMessage = recoveryPersistenceMessage
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, planID, createdAt, items, skippedItems, recoveryPersistenceFailed, recoveryPersistenceMessage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        planID = try container.decode(UUID.self, forKey: .planID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        items = try container.decode([SystemPreferenceChangeItemResult].self, forKey: .items)
+        skippedItems = try container.decodeIfPresent([SystemPreferenceSkippedItem].self, forKey: .skippedItems) ?? []
+        recoveryPersistenceFailed = try container.decodeIfPresent(Bool.self, forKey: .recoveryPersistenceFailed) ?? false
+        recoveryPersistenceMessage = try container.decodeIfPresent(String.self, forKey: .recoveryPersistenceMessage)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(planID, forKey: .planID)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(items, forKey: .items)
+        try container.encode(skippedItems, forKey: .skippedItems)
+        try container.encode(recoveryPersistenceFailed, forKey: .recoveryPersistenceFailed)
+        try container.encodeIfPresent(recoveryPersistenceMessage, forKey: .recoveryPersistenceMessage)
+    }
 
     var changedCount: Int { items.filter { $0.outcome == .changed }.count }
-    var failedCount: Int { items.filter { $0.outcome == .failed }.count }
+    var itemFailedCount: Int { items.filter { $0.outcome == .failed }.count }
+    var failedCount: Int { itemFailedCount + (recoveryPersistenceFailed ? 1 : 0) }
+    var skippedCount: Int { skippedItems.count }
+
+    var status: SystemPreferencesBatchStatus {
+        if recoveryPersistenceFailed { return .recoveryStateUncertain }
+        guard itemFailedCount > 0 || skippedCount > 0 else { return .succeeded }
+        return changedCount > 0 ? .partiallyFailed : .failed
+    }
 }
 
 struct SystemPreferencesRecoveryItem: Codable, Equatable, Sendable {

@@ -37,7 +37,7 @@ private struct GatePassUpdateSheet: View {
     @ObservedObject var updater: GatePassUpdater
 
     var body: some View {
-        if updater.hasNewerGatePassRelease || updater.forceUpdateRequested || updater.isChecking {
+        if updater.hasNewerGatePassRelease || updater.forceUpdateRequested || updater.isChecking || updater.updateError != nil {
             updater.getUpdateView()
         } else {
             GatePassNoUpdateView(updater: updater)
@@ -56,20 +56,30 @@ private struct GatePassNoUpdateView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: updater.updateError == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(.green)
+                .foregroundStyle(updater.updateError == nil ? .green : .orange)
 
             VStack(spacing: 5) {
-                Text(gatePassCopy("已是最新版本", "You're up to date", language: language))
-                    .font(.title2.weight(.semibold))
-                Text(gatePassCopy(
-                    "GatePass \(updater.currentVersion) 已经是 GitHub 上的最新版本。",
-                    "GatePass \(updater.currentVersion) is already the latest release on GitHub.",
-                    language: language
-                ))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                if let updateError = updater.updateError {
+                    Text(gatePassCopy("更新检查失败", "Update check failed", language: language))
+                        .font(.title2.weight(.semibold))
+                    Text(updateError)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .textSelection(.enabled)
+                } else {
+                    Text(gatePassCopy("已是最新版本", "You're up to date", language: language))
+                        .font(.title2.weight(.semibold))
+                    Text(gatePassCopy(
+                        "GatePass \(updater.currentVersion) 已经是当前更新源上的最新版本。",
+                        "GatePass \(updater.currentVersion) is already the latest release from the selected update source.",
+                        language: language
+                    ))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Button(gatePassCopy("关闭", "Close", language: language)) {

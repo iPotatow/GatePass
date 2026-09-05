@@ -125,7 +125,6 @@ struct SystemPreferencesPlanner {
         desiredOptimizedIDs: Set<String>,
         recovery: SystemPreferencesRecoveryDocument?
     ) -> SystemPreferencesChangePlan {
-        let recoveryByID = Dictionary(uniqueKeysWithValues: (recovery?.items ?? []).map { ($0.settingID, $0) })
         var items: [SystemPreferenceChangePlanItem] = []
         var skipped: [SystemPreferenceSkippedItem] = []
 
@@ -141,14 +140,9 @@ struct SystemPreferencesPlanner {
             }
 
             let target: SystemPreferenceTargetState = desiredOptimized ? .optimized : .systemDefault
-            let desiredValue: SystemPreferenceValue
-            if target == .optimized {
-                desiredValue = item.definition.recommendedValue
-            } else if let recoveryItem = recoveryByID[item.id], recoveryItem.optimizedValue == item.currentValue {
-                desiredValue = recoveryItem.originalValue
-            } else {
-                desiredValue = item.definition.disabledValue ?? item.definition.defaultValue
-            }
+            let desiredValue: SystemPreferenceValue = target == .optimized
+                ? item.definition.recommendedValue
+                : item.definition.disabledValue ?? item.definition.defaultValue
 
             items.append(SystemPreferenceChangePlanItem(
                 settingID: item.id,
@@ -188,7 +182,7 @@ struct SystemPreferencesPlanner {
             }
             items.append(SystemPreferenceChangePlanItem(
                 settingID: recoveryItem.settingID,
-                target: .systemDefault,
+                target: .restoreOriginal,
                 expectedValue: current.currentValue,
                 desiredValue: recoveryItem.originalValue,
                 requiresRestart: current.definition.requiresRestart,
@@ -242,8 +236,9 @@ actor SystemPreferencesRecoveryStore {
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
     }
 
-    func clear() {
-        try? FileManager.default.removeItem(at: fileURL)
+    func clear() throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        try FileManager.default.removeItem(at: fileURL)
     }
 
     enum StoreError: Error { case tooLarge }
@@ -293,9 +288,15 @@ struct SystemPreferencesRefresher {
         "macos.menubar.flash-time-separators"
     ]
 
-    func refreshIfNeeded(changedSettingIDs: Set<String>) async {
-        let refreshFinder = !changedSettingIDs.isDisjoint(with: Self.finderRefreshSettingIDs)
-        let refreshDock = !changedSettingIDs.isDisjoint(with: Self.dockRefreshSettingIDs)
+    func refreshIfNeeded(
+        changedSettingIDs: Set<String>,
+        finderRestartRequired: Bool,
+        dockRestartRequired: Bool
+    ) async {
+        let refreshFinder = finderRestartRequired
+            || !changedSettingIDs.isDisjoint(with: Self.finderRefreshSettingIDs)
+        let refreshDock = dockRestartRequired
+            || !changedSettingIDs.isDisjoint(with: Self.dockRefreshSettingIDs)
         let refreshSystemUI = !changedSettingIDs.isDisjoint(with: Self.systemUIRefreshSettingIDs)
         guard refreshFinder || refreshDock || refreshSystemUI else { return }
 
@@ -349,13 +350,37 @@ struct SystemPreferencesExecutor {
             plan: plan,
             results: results
         )
-        if reconciled.items.isEmpty { await recoveryStore.clear() }
-        else { try await recoveryStore.save(reconciled) }
+        var recoveryPersistenceFailed = false
+        var recoveryPersistenceMessage: String?
+        do {
+            if reconciled.items.isEmpty { try await recoveryStore.clear() }
+            else { try await recoveryStore.save(reconciled) }
+        } catch {
+            // The preflight document was written before any setting mutation. Keep
+            // returning the real item outcomes instead of making a successful write
+            // look like a failed/unknown execution at the caller boundary.
+            recoveryPersistenceFailed = true
+            recoveryPersistenceMessage = error.localizedDescription
+        }
 
         let changed = Set(results.filter { $0.outcome == .changed && $0.verified }.map(\.settingID))
-        await refresher.refreshIfNeeded(changedSettingIDs: changed)
+        let finderRestartRequired = changed.contains { definitions[$0]?.restartTarget == .finder }
+        let dockRestartRequired = changed.contains { definitions[$0]?.restartTarget == .dock }
+        await refresher.refreshIfNeeded(
+            changedSettingIDs: changed,
+            finderRestartRequired: finderRestartRequired,
+            dockRestartRequired: dockRestartRequired
+        )
 
-        return SystemPreferencesChangeResult(id: UUID(), planID: plan.id, createdAt: Date(), items: results)
+        return SystemPreferencesChangeResult(
+            id: UUID(),
+            planID: plan.id,
+            createdAt: Date(),
+            items: results,
+            skippedItems: plan.skippedItems,
+            recoveryPersistenceFailed: recoveryPersistenceFailed,
+            recoveryPersistenceMessage: recoveryPersistenceMessage
+        )
     }
 
     private func executeItem(_ item: SystemPreferenceChangePlanItem) -> SystemPreferenceChangeItemResult {
@@ -412,11 +437,23 @@ struct SystemPreferencesExecutor {
         let planByID = Dictionary(uniqueKeysWithValues: plan.items.map { ($0.settingID, $0) })
         copy.items.removeAll { recoveryItem in
             guard let planItem = planByID[recoveryItem.settingID], let result = resultByID[recoveryItem.settingID] else { return false }
-            if planItem.target == .systemDefault && result.verified { return true }
+            if planItem.target == .restoreOriginal && result.verified { return true }
             if planItem.target == .optimized && !previousIDs.contains(recoveryItem.settingID) {
-                switch result.failureReason {
-                case .settingChanged?, .permissionDenied?, .unsupported?: return true
-                default: return false
+                switch result.outcome {
+                case .unchanged:
+                    // No write happened, so this run must not leave behind a
+                    // recovery entry that it created during preflight.
+                    return true
+                case .failed:
+                    // These failures happen before a write. For failures where a
+                    // write may have happened, keep the preflight entry as the
+                    // recovery safety net.
+                    switch result.failureReason {
+                    case .settingChanged?, .permissionDenied?, .unsupported?: return true
+                    default: return false
+                    }
+                case .changed:
+                    return false
                 }
             }
             return false
@@ -528,7 +565,7 @@ final class SystemPreferencesStore: ObservableObject {
         guard !isApplying, let catalog else { return }
         let recovery = await recoveryStore.load()
         let plan = planner.prepare(catalog: catalog, desiredOptimizedIDs: desiredOptimizedIDs, recovery: recovery)
-        guard !plan.items.isEmpty else { return }
+        guard !plan.items.isEmpty || !plan.skippedItems.isEmpty else { return }
         if !plan.highRiskItems.isEmpty {
             pendingRiskPlan = plan
             return
@@ -551,11 +588,19 @@ final class SystemPreferencesStore: ObservableObject {
         catalog = fresh
         let plan = planner.prepareRecovery(catalog: fresh, recovery: recovery)
         guard !plan.items.isEmpty else {
+            if !plan.skippedItems.isEmpty {
+                await execute(plan, previousRecovery: recovery)
+                return
+            }
             if recovery.items.allSatisfy({ item in
                 fresh.items.first(where: { $0.id == item.settingID })?.currentValue == item.originalValue
             }) {
-                await recoveryStore.clear()
-                catalog = await scanner.scan(recovery: nil)
+                do {
+                    try await recoveryStore.clear()
+                    catalog = await scanner.scan(recovery: nil)
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
             }
             return
         }
@@ -569,6 +614,10 @@ final class SystemPreferencesStore: ObservableObject {
         do {
             let result = try await executor.execute(plan, previousRecovery: previousRecovery)
             lastResult = result
+            if result.recoveryPersistenceFailed {
+                errorMessage = result.recoveryPersistenceMessage
+                    ?? "系统偏好已写入，但恢复状态保存失败。"
+            }
             try? await historyStore.append(result)
             let recovery = await recoveryStore.load()
             let fresh = await scanner.scan(recovery: recovery)

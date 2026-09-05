@@ -113,7 +113,6 @@ enum SystemPreferenceMetadata {
         "macos.keyboard.hide-language-indicator": .init(zh: "切换多个输入法时不显示屏幕中央的语言/输入源提示。", en: "Hide the on-screen language indicator when switching between configured input sources."),
         "macos.screenshots.hide-date": .init(zh: "系统截图文件名不再附带日期和时间；连续截图仍会由系统自动避免重名。", en: "Remove the date and time from screenshot filenames while letting macOS avoid duplicate names."),
         "macos.messages.show-subject-field": .init(zh: "在“信息”App 的消息输入区显示主题栏，可为 iMessage 或短信添加主题。", en: "Show a subject field above the message composer in Messages."),
-        "macos.music.disable-track-notifications": .init(zh: "关闭“音乐”App 在切换到新歌曲时显示的播放通知。", en: "Disable Music notifications that appear when playback moves to a new track."),
         "macos.terminal.focus-follows-mouse": .init(zh: "鼠标移到另一个“终端”窗口上时自动将键盘焦点切换到该窗口，仅影响 Terminal 窗口之间。", en: "Move keyboard focus between Terminal windows by hovering the pointer over them."),
         "macos.menubar.flash-time-separators": .init(zh: "让菜单栏时钟中的时间分隔符每秒闪烁一次。", en: "Flash the menu bar clock's time separator once per second."),
     ]

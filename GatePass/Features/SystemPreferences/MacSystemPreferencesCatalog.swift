@@ -60,7 +60,6 @@ enum MacSystemPreferencesCatalog {
         d("macos.text.disable-text-completion", "关闭文本补全", "Disable text completion", .productivity, .custom, .standard, "NSGlobalDomain", "NSAutomaticTextCompletionEnabled", .boolean, .bool(true), .bool(false), nil, false),
         d("macos.text.disable-inline-predictions", "关闭行内预测", "Disable inline predictions", .privacy, .custom, .standard, "NSGlobalDomain", "NSAutomaticInlinePredictionEnabled", .boolean, .bool(true), .bool(false), nil, false),
         d("macos.messages.show-subject-field", "信息显示主题栏", "Show Messages subject field", .productivity, .custom, .standard, "com.apple.MobileSMS", "MMSShowSubject", .boolean, .bool(false), .bool(true), .bool(false), true),
-        d("macos.music.disable-track-notifications", "关闭音乐切歌通知", "Disable Music track notifications", .productivity, .custom, .standard, "com.apple.Music", "userWantsPlaybackNotifications", .boolean, .bool(true), .bool(false), .bool(true), true),
         d("macos.terminal.focus-follows-mouse", "终端窗口焦点跟随鼠标", "Terminal focus follows mouse", .productivity, .custom, .standard, "com.apple.Terminal", "FocusFollowsMouse", .boolean, .bool(false), .bool(true), .bool(false), true),
         d("macos.menubar.flash-time-separators", "菜单栏时间分隔符闪烁", "Flash menu bar time separators", .appearance, .custom, .standard, "com.apple.menuextra.clock", "FlashDateSeparators", .boolean, .bool(false), .bool(true), .bool(false), false),
     ]

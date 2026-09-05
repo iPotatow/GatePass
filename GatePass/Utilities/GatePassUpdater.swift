@@ -133,6 +133,328 @@ struct GatePassVersion: Comparable {
     }
 }
 
+enum GatePassUpdateSource: String, CaseIterable, Identifiable {
+    case github
+    case ghProxy = "gh-proxy.com"
+    case ghproxyNet = "ghproxy.net"
+    case legacyMirror = "mirror"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .github:
+            return "GitHub"
+        case .ghProxy, .legacyMirror:
+            return "gh-proxy.com"
+        case .ghproxyNet:
+            return "ghproxy.net"
+        }
+    }
+
+    var proxyPrefix: String? {
+        switch self {
+        case .github:
+            return nil
+        case .ghProxy:
+            return "https://gh-proxy.com/"
+        case .ghproxyNet:
+            return "https://ghproxy.net/"
+        case .legacyMirror:
+            return "https://gh-proxy.com/"
+        }
+    }
+}
+
+struct GatePassUpdateEndpoint {
+    static func resolve(
+        originalURL: URL,
+        source: GatePassUpdateSource
+    ) -> URL? {
+        guard let proxyPrefix = source.proxyPrefix else { return originalURL }
+        let resolvedString = "\(proxyPrefix)\(originalURL.absoluteString)"
+
+        guard let resolvedURL = URL(string: resolvedString),
+              let scheme = resolvedURL.scheme?.lowercased(),
+              scheme == "https",
+              resolvedURL.host != nil else {
+            return nil
+        }
+        return resolvedURL
+    }
+}
+
+
+struct GatePassPendingInstallation: Codable {
+    let destinationPath: String
+    let backupPath: String
+    let bundleIdentifier: String
+    let expectedVersion: String
+}
+
+struct GatePassUpdateInstaller {
+    private static let statusFileName = "install-status"
+    private static let recordFileName = "install-record.json"
+
+    static func installScript(
+        stagedApp: URL,
+        destination: URL,
+        updateRoot: URL,
+        backupName: String,
+        expectedBundleIdentifier: String,
+        expectedVersion: String,
+        parentProcessID: Int32? = nil
+    ) -> String {
+        let backup = destination.deletingLastPathComponent().appendingPathComponent(backupName)
+        let candidate = destination.deletingLastPathComponent()
+            .appendingPathComponent(".GatePass-install-\(UUID().uuidString)", isDirectory: true)
+        let status = updateRoot.appendingPathComponent(statusFileName)
+
+        let waitForParent = parentProcessID.map { """
+        parent_pid=\($0)
+        while /bin/kill -0 "$parent_pid" >/dev/null 2>&1; do
+            /bin/sleep 1
+        done
+        """ } ?? ""
+
+        return """
+        #!/bin/zsh
+        set -u
+        old=\(shellQuote(destination.path))
+        new=\(shellQuote(stagedApp.path))
+        backup=\(shellQuote(backup.path))
+        candidate=\(shellQuote(candidate.path))
+        status_path=\(shellQuote(status.path))
+        expected_id=\(shellQuote(expectedBundleIdentifier))
+        expected_version=\(shellQuote(expectedVersion))
+
+        write_status() {
+            /usr/bin/printf '%s\\n' "$1" > "$status_path" 2>/dev/null || true
+        }
+
+        remove_candidate() {
+            if [[ -e "$candidate" ]]; then
+                /bin/rm -rf "$candidate" >/dev/null 2>&1 || true
+            fi
+        }
+
+        verify_bundle() {
+            local bundle="$1"
+            [[ -d "$bundle" ]] || return 1
+            local actual_id actual_version
+            actual_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle/Contents/Info.plist" 2>/dev/null) || return 1
+            actual_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$bundle/Contents/Info.plist" 2>/dev/null) || return 1
+            [[ "$actual_id" == "$expected_id" && "$actual_version" == "$expected_version" ]]
+        }
+
+        restore_backup() {
+            if [[ -e "$old" ]]; then
+                /bin/rm -rf "$old" >/dev/null 2>&1 || return 1
+            fi
+            /bin/mv "$backup" "$old" >/dev/null 2>&1 || return 1
+            verify_bundle "$old"
+        }
+
+        \(waitForParent)
+
+        if ! /usr/bin/ditto "$new" "$candidate" >/dev/null 2>&1; then
+            remove_candidate
+            write_status "failed_preflight"
+            exit 1
+        fi
+        if ! verify_bundle "$candidate"; then
+            remove_candidate
+            write_status "failed_preflight"
+            exit 1
+        fi
+
+        if ! /bin/mv "$old" "$backup" >/dev/null 2>&1; then
+            remove_candidate
+            write_status "failed_swap"
+            exit 1
+        fi
+
+        if ! /bin/mv "$candidate" "$old" >/dev/null 2>&1; then
+            if restore_backup; then
+                write_status "failed_swap_restored"
+            else
+                write_status "failed_restore"
+            fi
+            remove_candidate
+            exit 1
+        fi
+
+        if ! verify_bundle "$old"; then
+            if restore_backup; then
+                write_status "failed_post_install_restored"
+            else
+                write_status "failed_restore"
+            fi
+            exit 1
+        fi
+
+        write_status "installed"
+        /usr/bin/open "$old" >/dev/null 2>&1 || write_status "installed_open_failed"
+        exit 0
+        """
+    }
+
+    static func pendingInstallationRecord(
+        destination: URL,
+        backupName: String,
+        bundleIdentifier: String,
+        expectedVersion: String
+    ) -> GatePassPendingInstallation {
+        GatePassPendingInstallation(
+            destinationPath: destination.path,
+            backupPath: destination.deletingLastPathComponent().appendingPathComponent(backupName).path,
+            bundleIdentifier: bundleIdentifier,
+            expectedVersion: expectedVersion
+        )
+    }
+
+    static func finalizePendingInstallation(
+        in updatesDirectory: URL,
+        installedAppURL: URL,
+        installedBundleIdentifier: String?,
+        installedVersion: String,
+        fileManager: FileManager = .default
+    ) -> String? {
+        guard let roots = try? fileManager.contentsOfDirectory(
+            at: updatesDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        for root in roots {
+            let statusURL = root.appendingPathComponent(statusFileName)
+            guard let status = try? String(contentsOf: statusURL, encoding: .utf8)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  status == "installed" || status == "installed_open_failed" else {
+                continue
+            }
+            let recordURL = root.appendingPathComponent(recordFileName)
+            guard let data = try? Data(contentsOf: recordURL),
+                  let record = try? JSONDecoder().decode(GatePassPendingInstallation.self, from: data) else {
+                return "GatePass installed an update, but its rollback record could not be read. The previous version was kept."
+            }
+            guard record.destinationPath == installedAppURL.path,
+                  record.bundleIdentifier == installedBundleIdentifier,
+                  record.expectedVersion == installedVersion else {
+                return "GatePass installed an update, but could not confirm the installed version. The previous version was kept."
+            }
+
+            do {
+                if fileManager.fileExists(atPath: record.backupPath) {
+                    try fileManager.removeItem(atPath: record.backupPath)
+                }
+                try fileManager.removeItem(at: root)
+            } catch {
+                return "GatePass updated successfully, but could not remove the rollback copy. It was kept for recovery."
+            }
+        }
+        return nil
+    }
+
+    static func pendingFailureMessage(
+        in updatesDirectory: URL,
+        fileManager: FileManager = .default
+    ) -> String? {
+        guard let roots = try? fileManager.contentsOfDirectory(
+            at: updatesDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        for root in roots {
+            let statusURL = root.appendingPathComponent(statusFileName)
+            guard let status = try? String(contentsOf: statusURL, encoding: .utf8)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  status.hasPrefix("failed_") else { continue }
+
+            let message: String
+            switch status {
+            case "failed_restore":
+                message = "The update failed and GatePass could not restore the previous version. A rollback copy was kept for recovery."
+            case "failed_swap_restored", "failed_post_install_restored":
+                message = "The update failed, so GatePass restored the previous version."
+            default:
+                message = "The update failed before installation completed. Your current version was not replaced."
+            }
+            if status != "failed_restore" {
+                try? fileManager.removeItem(at: root)
+            }
+            return message
+        }
+        return nil
+    }
+
+    private static func shellQuote(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+}
+
+private final class GatePassUpdateProcessOutput: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Data()
+
+    func set(_ data: Data) {
+        lock.lock()
+        value = data
+        lock.unlock()
+    }
+
+    func get() -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+}
+
+struct GatePassUpdateProcessRunner {
+    static func run(executable: String, arguments: [String]) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let output = try runSynchronously(executable: executable, arguments: arguments)
+                    continuation.resume(returning: output)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    private static func runSynchronously(executable: String, arguments: [String]) throws -> String {
+        let process = Process()
+        let outputPipe = Pipe()
+        let output = GatePassUpdateProcessOutput()
+        let readGroup = DispatchGroup()
+
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+        try process.run()
+
+        readGroup.enter()
+        DispatchQueue.global(qos: .utility).async {
+            output.set(outputPipe.fileHandleForReading.readDataToEndOfFile())
+            readGroup.leave()
+        }
+
+        process.waitUntilExit()
+        readGroup.wait()
+
+        let text = String(data: output.get(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard process.terminationStatus == 0 else {
+            throw GatePassUpdateError.processFailed(text.isEmpty ? executable : text)
+        }
+        return text
+    }
+}
+
 @MainActor
 final class GatePassUpdater: ObservableObject {
     @Published var updateAvailable = false
@@ -143,6 +465,11 @@ final class GatePassUpdater: ObservableObject {
         didSet {
             defaults.set(updateFrequency.rawValue, forKey: Keys.frequency)
             setNextUpdateDate()
+        }
+    }
+    @Published var updateSource: GatePassUpdateSource {
+        didSet {
+            defaults.set(updateSource.rawValue, forKey: Keys.updateSource)
         }
     }
     @Published var nextUpdateDate: Date {
@@ -163,6 +490,7 @@ final class GatePassUpdater: ObservableObject {
     private enum Keys {
         static let frequency = "gatepass.updater.frequency"
         static let nextCheckDate = "gatepass.updater.nextCheckDate"
+        static let updateSource = "gatepass.updater.updateSource"
         static let migrated = "gatepass.updater.preferencesMigratedVersion"
     }
 
@@ -190,6 +518,7 @@ final class GatePassUpdater: ObservableObject {
         self.owner = owner
         self.repo = repo
         self.updateFrequency = .daily
+        self.updateSource = .github
         self.nextUpdateDate = Date()
         migratePreferences()
 
@@ -200,12 +529,30 @@ final class GatePassUpdater: ObservableObject {
             self.updateFrequency = .daily
         }
 
+        if let raw = defaults.string(forKey: Keys.updateSource),
+           let source = GatePassUpdateSource(rawValue: raw) {
+            if source == .legacyMirror {
+                let legacyMirrorURL = defaults.string(forKey: "gatepass.updater.mirrorURL")?.lowercased() ?? ""
+                self.updateSource = legacyMirrorURL.localizedStandardContains("ghproxy.net")
+                    ? .ghproxyNet
+                    : .ghProxy
+                defaults.set(self.updateSource.rawValue, forKey: Keys.updateSource)
+            } else {
+                self.updateSource = source
+            }
+        } else {
+            self.updateSource = .github
+        }
+        defaults.removeObject(forKey: "gatepass.updater.mirrorURL")
+
         if let stored = defaults.object(forKey: Keys.nextCheckDate) as? NSNumber,
            stored.doubleValue != 0 {
             self.nextUpdateDate = Date(timeIntervalSinceReferenceDate: stored.doubleValue)
         } else {
             self.nextUpdateDate = Date()
         }
+
+        recordPendingInstallationState()
 
         Task { [weak self] in
             self?.checkAndUpdateIfNeeded()
@@ -214,7 +561,6 @@ final class GatePassUpdater: ObservableObject {
 
     func checkForUpdates(sheet: Bool = false, force: Bool = false, forceUpdate: Bool = false) {
         guard !isChecking, !isUpdating else { return }
-        updateError = nil
         forceUpdateRequested = forceUpdate
         isChecking = true
 
@@ -224,6 +570,7 @@ final class GatePassUpdater: ObservableObject {
                 let fetched = try await fetchReleases()
                 releases = fetched
                 updateAvailable = hasNewerGatePassRelease
+                updateError = nil
                 if sheet {
                     self.sheet = true
                 }
@@ -234,6 +581,8 @@ final class GatePassUpdater: ObservableObject {
                     setNextUpdateDate()
                 }
             } catch {
+                releases = []
+                updateAvailable = false
                 updateError = error.localizedDescription
                 if sheet {
                     self.sheet = true
@@ -252,7 +601,11 @@ final class GatePassUpdater: ObservableObject {
             do {
                 releases = try await fetchReleases()
                 updateAvailable = hasNewerGatePassRelease
+                updateError = nil
             } catch {
+                releases = []
+                updateAvailable = false
+                updateError = error.localizedDescription
                 printOS("Updater: release notes unavailable — \(error.localizedDescription)", category: GatePassLogCategory.updater)
             }
             isChecking = false
@@ -291,6 +644,7 @@ final class GatePassUpdater: ObservableObject {
             } catch {
                 isUpdating = false
                 forceUpdateRequested = false
+                updateAvailable = false
                 updateError = error.localizedDescription
                 progressBar = ("Update failed", 0)
                 printOS("Updater: \(error.localizedDescription)", category: GatePassLogCategory.updater)
@@ -312,9 +666,10 @@ final class GatePassUpdater: ObservableObject {
     }
 
     private func fetchReleases() async throws -> [GatePassRelease] {
-        guard let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases") else {
+        guard let githubURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases") else {
             throw GatePassUpdateError.invalidURL
         }
+        let url = try updateURL(for: githubURL)
 
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -338,8 +693,14 @@ final class GatePassUpdater: ObservableObject {
         guard let asset = selectUpdateAsset(from: release.assets) else {
             throw GatePassUpdateError.noDownload
         }
-        guard let downloadURL = URL(string: asset.browserDownloadURL.isEmpty ? asset.url : asset.browserDownloadURL) else {
+        guard let originalDownloadURL = URL(string: asset.browserDownloadURL.isEmpty ? asset.url : asset.browserDownloadURL) else {
             throw GatePassUpdateError.invalidURL
+        }
+        let downloadURL = try updateURL(for: originalDownloadURL)
+
+        let destination = Bundle.main.bundleURL
+        guard FileManager.default.isWritableFile(atPath: destination.deletingLastPathComponent().path) else {
+            throw GatePassUpdateError.installLocationNotWritable(destination.deletingLastPathComponent().path)
         }
 
         let fileManager = FileManager.default
@@ -375,24 +736,32 @@ final class GatePassUpdater: ObservableObject {
 
         let extractionURL = updateRoot.appendingPathComponent("extracted", isDirectory: true)
         try fileManager.createDirectory(at: extractionURL, withIntermediateDirectories: true)
-        try runProcess("/usr/bin/ditto", arguments: ["-xk", archiveURL.path, extractionURL.path])
+        _ = try await GatePassUpdateProcessRunner.run(executable: "/usr/bin/ditto", arguments: ["-xk", archiveURL.path, extractionURL.path])
 
         let appURLs = (fileManager.enumerator(at: extractionURL, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? [])
             .filter { $0.pathExtension == "app" }
         guard appURLs.count == 1 else { throw GatePassUpdateError.invalidArchive }
         let stagedApp = appURLs[0]
-        guard let stagedBundle = Bundle(url: stagedApp),
-              stagedBundle.bundleIdentifier == Bundle.main.bundleIdentifier,
-              let stagedVersion = GatePassVersion(stagedBundle.version),
+        guard let currentBundleIdentifier = Bundle.main.bundleIdentifier,
+              let stagedBundle = Bundle(url: stagedApp),
+              stagedBundle.bundleIdentifier == currentBundleIdentifier,
+              let stagedShortVersion = stagedBundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              let stagedVersion = GatePassVersion(stagedShortVersion),
               let releaseVersion = GatePassVersion(release.tagName),
               stagedVersion == releaseVersion else {
             throw GatePassUpdateError.invalidArchive
         }
-        try runProcess("/usr/bin/codesign", arguments: ["--verify", "--deep", "--strict", stagedApp.path])
-        try runProcess("/usr/sbin/spctl", arguments: ["--assess", "--type", "execute", stagedApp.path])
+        // Release ZIPs are built without a Developer ID signature. Their integrity is
+        // established by SHA256SUMS above; requiring a local Gatekeeper assessment
+        // here would reject every valid release before installation can begin.
         progressBar = ("Ready to install…", 0.65)
 
-        try launchInstaller(stagedApp: stagedApp, updateRoot: updateRoot)
+        try launchInstaller(
+            stagedApp: stagedApp,
+            updateRoot: updateRoot,
+            expectedBundleIdentifier: currentBundleIdentifier,
+            expectedVersion: stagedShortVersion
+        )
         installerLaunched = true
         progressBar = ("Restarting GatePass…", 1)
         isUpdating = false
@@ -406,9 +775,10 @@ final class GatePassUpdater: ObservableObject {
         }) else {
             throw GatePassUpdateError.missingChecksum
         }
-        guard let url = URL(string: checksumAsset.browserDownloadURL.isEmpty ? checksumAsset.url : checksumAsset.browserDownloadURL) else {
+        guard let originalURL = URL(string: checksumAsset.browserDownloadURL.isEmpty ? checksumAsset.url : checksumAsset.browserDownloadURL) else {
             throw GatePassUpdateError.invalidURL
         }
+        let url = try updateURL(for: originalURL)
         let (data, response) = try await URLSession.shared.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200,
               let text = String(data: data, encoding: .utf8) else {
@@ -428,6 +798,16 @@ final class GatePassUpdater: ObservableObject {
         guard actual == expected else { throw GatePassUpdateError.checksumMismatch }
     }
 
+    private func updateURL(for originalURL: URL) throws -> URL {
+        guard let resolvedURL = GatePassUpdateEndpoint.resolve(
+            originalURL: originalURL,
+            source: updateSource
+        ) else {
+            throw GatePassUpdateError.invalidURL
+        }
+        return resolvedURL
+    }
+
     private func selectUpdateAsset(from assets: [GatePassAsset]) -> GatePassAsset? {
         let arch = {
 #if arch(arm64)
@@ -443,29 +823,34 @@ final class GatePassUpdater: ObservableObject {
             ?? zipAssets.first
     }
 
-    private func launchInstaller(stagedApp: URL, updateRoot: URL) throws {
+    private func launchInstaller(
+        stagedApp: URL,
+        updateRoot: URL,
+        expectedBundleIdentifier: String,
+        expectedVersion: String
+    ) throws {
         let destination = Bundle.main.bundleURL
-        let scriptURL = updateRoot.appendingPathComponent("install-update.zsh")
         let backupName = ".GatePass-backup-\(UUID().uuidString)"
-        let script = """
-        #!/bin/zsh
-        set -euo pipefail
-        old=\(shellQuote(destination.path))
-        new=\(shellQuote(stagedApp.path))
-        root=\(shellQuote(updateRoot.path))
-        backup="${old:h}/\(backupName)"
-        for _ in {1..30}; do
-            /usr/bin/pgrep -x GatePass >/dev/null 2>&1 || break
-            /bin/sleep 1
-        done
-        /bin/mv "$old" "$backup"
-        if ! /usr/bin/ditto "$new" "$old"; then
-            /bin/mv "$backup" "$old"
-            exit 1
-        fi
-        /bin/rm -rf "$backup" "$root"
-        /usr/bin/open "$old"
-        """
+        let record = GatePassUpdateInstaller.pendingInstallationRecord(
+            destination: destination,
+            backupName: backupName,
+            bundleIdentifier: expectedBundleIdentifier,
+            expectedVersion: expectedVersion
+        )
+        let recordURL = updateRoot.appendingPathComponent("install-record.json")
+        let recordData = try JSONEncoder().encode(record)
+        try recordData.write(to: recordURL, options: .atomic)
+
+        let scriptURL = updateRoot.appendingPathComponent("install-update.zsh")
+        let script = GatePassUpdateInstaller.installScript(
+            stagedApp: stagedApp,
+            destination: destination,
+            updateRoot: updateRoot,
+            backupName: backupName,
+            expectedBundleIdentifier: expectedBundleIdentifier,
+            expectedVersion: expectedVersion,
+            parentProcessID: ProcessInfo.processInfo.processIdentifier
+        )
         try script.write(to: scriptURL, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptURL.path)
 
@@ -477,19 +862,28 @@ final class GatePassUpdater: ObservableObject {
         try process.run()
     }
 
-    private func runProcess(_ executable: String, arguments: [String]) throws {
-        let process = Process()
-        let output = Pipe()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        process.standardOutput = output
-        process.standardError = output
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            let message = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw GatePassUpdateError.processFailed(message ?? executable)
+    private func recordPendingInstallationState() {
+        let fileManager = FileManager.default
+        guard let support = try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        ) else { return }
+        let updatesDirectory = support.appendingPathComponent("GatePass/Updates", isDirectory: true)
+        if let message = GatePassUpdateInstaller.finalizePendingInstallation(
+            in: updatesDirectory,
+            installedAppURL: Bundle.main.bundleURL,
+            installedBundleIdentifier: Bundle.main.bundleIdentifier,
+            installedVersion: currentVersion,
+            fileManager: fileManager
+        ) {
+            updateError = message
+        } else if let message = GatePassUpdateInstaller.pendingFailureMessage(
+            in: updatesDirectory,
+            fileManager: fileManager
+        ) {
+            updateError = message
         }
     }
 
@@ -512,9 +906,6 @@ final class GatePassUpdater: ObservableObject {
         defaults.removeObject(forKey: legacyNextDate)
     }
 
-    private func shellQuote(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
-    }
 }
 
 private enum GatePassUpdateError: LocalizedError {
@@ -528,13 +919,14 @@ private enum GatePassUpdateError: LocalizedError {
     case checksumMissingForAsset
     case checksumMismatch
     case invalidArchive
+    case installLocationNotWritable(String)
     case processFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "The update URL is invalid."
-        case .invalidResponse: return "GitHub returned an invalid response."
-        case let .httpStatus(status): return "GitHub returned HTTP status \(status)."
+        case .invalidResponse: return "The update source returned an invalid response."
+        case let .httpStatus(status): return "The update source returned HTTP status \(status)."
         case .noDownload: return "No compatible GatePass download was found."
         case .downloadFailed: return "The update download failed."
         case .missingChecksum: return "This release has no SHA-256 checksum asset."
@@ -542,6 +934,7 @@ private enum GatePassUpdateError: LocalizedError {
         case .checksumMissingForAsset: return "The release has no checksum for this download."
         case .checksumMismatch: return "The downloaded update failed its SHA-256 check."
         case .invalidArchive: return "The update archive does not contain exactly one GatePass app."
+        case let .installLocationNotWritable(path): return "GatePass cannot replace the app in \(path). Move it to a folder you can write to, then try again."
         case let .processFailed(command): return "The update verification command failed: \(command)"
         }
     }

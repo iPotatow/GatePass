@@ -92,23 +92,71 @@ struct SystemDefaultsClient: SystemDefaultsAccess, Sendable {
         process.standardError = stderr
 
         try process.run()
+
+        // Drain both pipes while the process is running. Waiting for the child
+        // before reading can deadlock when defaults emits enough diagnostics to
+        // fill a pipe buffer.
+        let output = CommandOutputBuffer()
+        let readers = DispatchGroup()
+        readers.enter()
+        DispatchQueue.global(qos: .utility).async {
+            output.setStdout(stdout.fileHandleForReading.readDataToEndOfFile())
+            readers.leave()
+        }
+        readers.enter()
+        DispatchQueue.global(qos: .utility).async {
+            output.setStderr(stderr.fileHandleForReading.readDataToEndOfFile())
+            readers.leave()
+        }
+
         let deadline = Date().addingTimeInterval(max(0.1, timeout))
         while process.isRunning {
             if Date() >= deadline {
                 process.terminate()
                 process.waitUntilExit()
+                readers.wait()
                 throw SystemDefaultsClientError.timedOut
             }
             Thread.sleep(forTimeInterval: 0.01)
         }
+        readers.wait()
 
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
         return CommandResult(
             exitCode: process.terminationStatus,
-            stdout: String(data: outData, encoding: .utf8) ?? "",
-            stderr: String(data: errData, encoding: .utf8) ?? ""
+            stdout: String(data: output.stdout, encoding: .utf8) ?? "",
+            stderr: String(data: output.stderr, encoding: .utf8) ?? ""
         )
+    }
+}
+
+
+private final class CommandOutputBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stdoutData = Data()
+    private var stderrData = Data()
+
+    func setStdout(_ data: Data) {
+        lock.lock()
+        stdoutData = data
+        lock.unlock()
+    }
+
+    func setStderr(_ data: Data) {
+        lock.lock()
+        stderrData = data
+        lock.unlock()
+    }
+
+    var stdout: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return stdoutData
+    }
+
+    var stderr: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return stderrData
     }
 }
 

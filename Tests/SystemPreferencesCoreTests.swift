@@ -43,15 +43,18 @@ final class FakeDefaultsClient: SystemDefaultsAccess, @unchecked Sendable {
     private var values: [String: SystemPreferenceValue]
     private let deniedIDs: Set<String>
     private let behavior: Behavior
+    private let onWrite: (() -> Void)?
 
     init(
         values: [String: SystemPreferenceValue],
         deniedIDs: Set<String> = [],
-        behavior: Behavior = .normal
+        behavior: Behavior = .normal,
+        onWrite: (() -> Void)? = nil
     ) {
         self.values = values
         self.deniedIDs = deniedIDs
         self.behavior = behavior
+        self.onWrite = onWrite
     }
 
     func read(_ definition: SystemPreferenceDefinition, timeout: TimeInterval) throws -> SystemPreferenceValue {
@@ -70,6 +73,7 @@ final class FakeDefaultsClient: SystemDefaultsAccess, @unchecked Sendable {
         defer { lock.unlock() }
         if deniedIDs.contains(definition.id) { throw SystemDefaultsClientError.accessDenied }
         if behavior == .normal { values[definition.id] = value }
+        onWrite?()
     }
 
     func set(_ value: SystemPreferenceValue, for id: String) {
@@ -93,6 +97,9 @@ struct SystemPreferencesCoreTests {
             try await testScannerUnsupportedGuard()
             try await testExecutorStaleState()
             try await testExecutorVerificationFailure()
+            try await testUnchangedDoesNotCreateRecovery()
+            try testPlannerSeparatesDisableAndRestore()
+            try await testRecoveryPersistenceFailureIsReported()
             try await testRecoveryRoundTrip()
             try await testPartialFailure()
             try await testHistoryPersistence()
@@ -108,7 +115,7 @@ struct SystemPreferencesCoreTests {
         let catalog = MacSystemPreferencesCatalog.all
         let ids = catalog.map(\.id)
 
-        try expect(catalog.count == 60, "Catalog must contain exactly 60 preferences, got \(catalog.count)")
+        try expect(catalog.count == 59, "Catalog must contain exactly 59 preferences, got \(catalog.count)")
         try expect(Set(ids).count == ids.count, "Catalog IDs must be unique")
         try expect(catalog.allSatisfy { $0.id.hasPrefix("macos.") }, "Every catalog ID must use the macos. namespace")
         try expect(catalog.allSatisfy { !$0.domain.isEmpty && !$0.key.isEmpty }, "Every preference must have a domain and key")
@@ -118,6 +125,8 @@ struct SystemPreferencesCoreTests {
         ]
         try expect(catalog.allSatisfy { !removedComponents.contains($0.component) },
                    "Removed System Preferences components must not remain in the catalog")
+        try expect(MacSystemPreferencesCatalog.byID["macos.music.disable-track-notifications"] == nil,
+                   "Music track notifications must not remain in the catalog")
 
         for item in catalog {
             switch (item.valueType, item.recommendedValue) {
@@ -133,8 +142,8 @@ struct SystemPreferencesCoreTests {
         let ids = Set(MacSystemPreferencesCatalog.all.map(\.id))
         let metadataIDs = Set(SystemPreferenceMetadata.descriptions.keys)
 
-        try expect(metadataIDs == ids, "Detailed descriptions must cover the same 60 IDs as the catalog")
-        try expect(SystemPreferenceMetadata.descriptions.count == 60, "Detailed descriptions must contain 60 entries")
+        try expect(metadataIDs == ids, "Detailed descriptions must cover the same 59 IDs as the catalog")
+        try expect(SystemPreferenceMetadata.descriptions.count == 59, "Detailed descriptions must contain 59 entries")
         try expect(SystemPreferenceMetadata.descriptions.values.allSatisfy {
             !$0.zh.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !$0.en.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -363,6 +372,112 @@ struct SystemPreferencesCoreTests {
                    "Executor must fail when read-back does not match the desired value")
     }
 
+    static func testUnchangedDoesNotCreateRecovery() async throws {
+        let definition = try unwrap(MacSystemPreferencesCatalog.byID["macos.finder.show-path-bar"], "Missing Finder path definition")
+        let client = FakeDefaultsClient(values: [definition.id: definition.recommendedValue])
+        let temp = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: temp) }
+        let recoveryStore = SystemPreferencesRecoveryStore(rootURL: temp)
+        let executor = SystemPreferencesExecutor(
+            definitions: [definition.id: definition],
+            client: client,
+            recoveryStore: recoveryStore,
+            refresher: SystemPreferencesRefresher()
+        )
+
+        let result = try await executor.execute(
+            makePlan(definition: definition, expected: definition.recommendedValue, desired: definition.recommendedValue),
+            previousRecovery: nil
+        )
+
+        try expect(result.items.first?.outcome == .unchanged, "An already-optimized setting must not be written")
+        try expect(result.status == .succeeded, "An unchanged setting should produce a successful batch")
+        let saved = await recoveryStore.load()
+        try expect(saved == nil, "An unchanged setting must not create a recovery entry")
+    }
+
+    static func testPlannerSeparatesDisableAndRestore() throws {
+        let definition = SystemPreferenceDefinition(
+            id: "test.preference.with-disabled-value",
+            titleZH: "测试",
+            titleEN: "Test",
+            summaryZH: "",
+            summaryEN: "",
+            category: .productivity,
+            selectionKind: .custom,
+            riskLevel: .standard,
+            domain: "test",
+            key: "Enabled",
+            valueType: .boolean,
+            defaultValue: .missing,
+            recommendedValue: .bool(true),
+            disabledValue: .bool(false),
+            requiresRestart: false
+        )
+        let current = SystemPreferenceItem(
+            definition: definition,
+            currentValue: .bool(true),
+            status: .optimized,
+            diagnostic: nil,
+            restoreAvailable: true
+        )
+        let catalog = SystemPreferencesCatalog(
+            scanID: UUID(), revision: "test", scannedAt: Date(), elapsed: 0,
+            items: [current], recoveryAvailable: false
+        )
+        let planner = SystemPreferencesPlanner()
+
+        let disablePlan = planner.prepare(catalog: catalog, desiredOptimizedIDs: [], recovery: nil)
+        try expect(disablePlan.items.first?.target == .systemDefault, "Turning a feature off should use the disable target")
+        try expect(disablePlan.items.first?.desiredValue == .bool(false), "Turning a feature off must use disabledValue")
+
+        let recovery = SystemPreferencesRecoveryDocument(
+            schemaVersion: SystemPreferencesRecoveryDocument.currentSchemaVersion,
+            recoveryID: UUID(), createdAt: Date(),
+            items: [.init(settingID: definition.id, originalValue: .missing, optimizedValue: .bool(true))]
+        )
+        let restorePlan = planner.prepareRecovery(catalog: catalog, recovery: recovery)
+        try expect(restorePlan.items.first?.target == .restoreOriginal, "Recovery must use a distinct restore target")
+        try expect(restorePlan.items.first?.desiredValue == .missing, "Recovery must restore the captured original value")
+    }
+
+    static func testRecoveryPersistenceFailureIsReported() async throws {
+        let definition = try unwrap(MacSystemPreferencesCatalog.byID["macos.finder.show-path-bar"], "Missing Finder path definition")
+        let temp = temporaryDirectory()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: temp.path)
+            try? FileManager.default.removeItem(at: temp)
+        }
+        let client = FakeDefaultsClient(
+            values: [definition.id: .bool(false)],
+            onWrite: {
+                // The preflight recovery file is already present. Removing write
+                // permission after the setting write makes reconciliation fail,
+                // while leaving the preflight safety net readable.
+                try? FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: temp.path)
+            }
+        )
+        let recoveryStore = SystemPreferencesRecoveryStore(rootURL: temp)
+        let executor = SystemPreferencesExecutor(
+            definitions: [definition.id: definition],
+            client: client,
+            recoveryStore: recoveryStore,
+            refresher: SystemPreferencesRefresher()
+        )
+
+        let result = try await executor.execute(
+            makePlan(definition: definition, expected: .bool(false), desired: .bool(true)),
+            previousRecovery: nil
+        )
+
+        try expect(result.items.first?.outcome == .changed, "The successful setting write must remain visible")
+        try expect(result.recoveryPersistenceFailed, "Recovery reconciliation failure must be reported")
+        try expect(result.status == .recoveryStateUncertain, "A recovery persistence failure must make batch state uncertain")
+        let saved = await recoveryStore.load()
+        try expect(saved?.items.first?.optimizedValue == .bool(true),
+                   "The preflight recovery entry must remain available after reconciliation failure")
+    }
+
     static func testRecoveryRoundTrip() async throws {
         let definition = try unwrap(MacSystemPreferencesCatalog.byID["macos.dock.use-scale-effect"], "Missing Dock definition")
         let client = FakeDefaultsClient(values: [definition.id: .text("genie")])
@@ -447,6 +562,7 @@ struct SystemPreferencesCoreTests {
 
         try expect(result.changedCount == 1, "One item should still succeed when another item fails")
         try expect(result.failedCount == 1, "Denied item should be reported as failed")
+        try expect(result.status == .partiallyFailed, "A mixed success/failure batch must be reported as partially failed")
         try expect(result.items.first(where: { $0.settingID == denied.id })?.failureReason == .permissionDenied,
                    "Denied item must report permissionDenied")
     }
