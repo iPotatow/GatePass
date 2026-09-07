@@ -26,9 +26,17 @@ struct Dashboard: View {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: GatePassTheme.sectionSpacing) {
                         quarantinePanel
-                            .frame(minWidth: 320, idealWidth: 360, maxWidth: .infinity)
+                            .frame(
+                                minWidth: GatePassTheme.dashboardPrimaryPanelMinWidth,
+                                idealWidth: 316,
+                                maxWidth: .infinity
+                            )
                         recentAppsPanel
-                            .frame(minWidth: 400, idealWidth: 500, maxWidth: .infinity)
+                            .frame(
+                                minWidth: GatePassTheme.dashboardRecentPanelMinWidth,
+                                idealWidth: 384,
+                                maxWidth: .infinity
+                            )
                     }
 
                     VStack(spacing: GatePassTheme.sectionSpacing) {
@@ -43,10 +51,10 @@ struct Dashboard: View {
         }
         .frame(
             minWidth: 0,
-            idealWidth: 920,
+            idealWidth: GatePassTheme.windowWidth,
             maxWidth: .infinity,
             minHeight: 0,
-            idealHeight: 680,
+            idealHeight: GatePassTheme.windowHeight,
             maxHeight: .infinity
         )
         .fileImporter(

@@ -37,7 +37,6 @@ struct SettingsView: View {
             }
             .padding(.horizontal, GatePassTheme.pageInset)
             .padding(.vertical, GatePassTheme.spaceL)
-            .frame(minWidth: 0, maxWidth: 920, maxHeight: .infinity, alignment: .topLeading)
             .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

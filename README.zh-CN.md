@@ -10,6 +10,8 @@
 
 GatePass 是一款原生 SwiftUI 工具，面向了解系统安全影响的高级 Mac 用户。它把通常散落在命令行里的两类工作集中到一个本地流程中：为已确认可信的 App 移除下载隔离属性，以及在写入前检查、应用并恢复一组经过筛选的 macOS 系统偏好。
 
+主窗口采用固定的 `960 × 680` 桌面布局：Sidebar 始终显示、宽度为 `220px`，交通灯位于 Sidebar 顶部区域，右侧使用单一内嵌 Content Surface。
+
 ## GatePass 能做什么
 
 | 工作区 | 用途 |
@@ -37,14 +39,12 @@ GatePass 是一款原生 SwiftUI 工具，面向了解系统安全影响的高�
 - 将原始值保存到本地恢复记录，提供**恢复上次更改**，并在历史中保留最近 200 次操作结果。
 - 标注更改后可能需要重启的相关进程。行为不确定的偏好不会进入自动推荐。
 
-![GatePass 系统偏好工作区](assets/gatepass-system-preferences.png)
-
 > [!WARNING]
 > GatePass 可能降低系统保护或改变系统行为。只处理来源和完整性已经由你独立核验的 App。移除隔离属性**不能**证明 App 安全；调整系统偏好也不能替代安全审查。应用前请逐项检查所有待应用更改。
 
 ## 获取 GatePass
 
-从 [GitHub Releases](https://github.com/iPotatow/GatePass/releases) 下载最新 ZIP 或 DMG。`0.2.0` 是首个包含“系统偏好”工作区的版本。
+从 [GitHub Releases](https://github.com/iPotatow/GatePass/releases) 下载最新 ZIP 或 DMG。`0.2.1` 统一了主窗口的 Sidebar、Content Surface 与页面标题对齐。
 
 每个自动发布版本包含：
 

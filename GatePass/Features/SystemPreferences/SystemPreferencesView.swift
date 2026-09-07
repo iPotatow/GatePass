@@ -29,9 +29,9 @@ struct SystemPreferencesView: View {
                     filters
                     settingsList
                 }
-                .frame(maxWidth: 1180)
+                .frame(maxWidth: GatePassTheme.contentMaxWidth, alignment: .leading)
                 .padding(GatePassTheme.pageInset)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Divider()

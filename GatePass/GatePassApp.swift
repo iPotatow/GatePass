@@ -29,7 +29,7 @@ struct GatePassApp: App {
         .windowToolbarStyle(.unifiedCompact)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
-        .defaultSize(width: 1040, height: 760)
+        .defaultSize(width: GatePassTheme.windowWidth, height: GatePassTheme.windowHeight)
     }
 }
 

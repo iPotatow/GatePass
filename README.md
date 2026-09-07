@@ -10,6 +10,8 @@
 
 GatePass is a native SwiftUI utility for advanced Mac users who want a clear, local workflow for two jobs that are usually handled by scattered shell commands: removing the download quarantine attribute from apps they already trust, and reviewing a curated set of macOS preference keys before applying changes.
 
+The main window uses a fixed 960 × 680 desktop layout with an always-visible 220 px sidebar, macOS traffic lights in the sidebar region, and a single inset content surface.
+
 ## What GatePass does
 
 | Workspace | Use it for |
@@ -37,14 +39,12 @@ GatePass is a native SwiftUI utility for advanced Mac users who want a clear, lo
 - Saves original values in a local recovery record, offers **Restore previous changes**, and keeps the latest 200 operation results in History.
 - Identifies related processes that may need to relaunch after a verified change. Preferences with uncertain behavior are kept out of automatic recommendations.
 
-![GatePass System Preferences workspace](assets/gatepass-system-preferences.png)
-
 > [!WARNING]
 > GatePass can reduce protections or change system behavior. Only process apps whose origin and integrity you have independently verified. Removing quarantine does **not** make an app safe, and changing a macOS preference does not replace a security review. Review every pending system change before applying it.
 
 ## Get GatePass
 
-Download the latest ZIP or DMG from [GitHub Releases](https://github.com/iPotatow/GatePass/releases). The `0.2.0` release is the first release with the System Preferences workspace.
+Download the latest ZIP or DMG from [GitHub Releases](https://github.com/iPotatow/GatePass/releases). Version `0.2.1` refreshes the main-window layout for a consistent sidebar, content surface, and page-header alignment.
 
 Every automated release contains:
 

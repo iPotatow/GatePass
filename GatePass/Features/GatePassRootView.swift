@@ -24,18 +24,38 @@ struct GatePassRootView: View {
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
-                .background(Color(nsColor: .underPageBackgroundColor))
                 .clipped()
                 .layoutPriority(1)
 
-            Divider()
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
+                    .fill(GatePassTheme.contentBackground)
 
-            detail
+                detail
+                    .clipShape(RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous))
+            }
+                .overlay {
+                    RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
+                        .strokeBorder(GatePassTheme.border.opacity(0.7), lineWidth: 1)
+                }
+                .shadow(color: Color.black.opacity(0.06), radius: 12, y: 4)
+                .padding(
+                    EdgeInsets(
+                        top: GatePassTheme.contentInset,
+                        leading: 0,
+                        bottom: GatePassTheme.contentInset,
+                        trailing: GatePassTheme.contentInset
+                    )
+                )
                 .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .clipped()
         }
-        .frame(minWidth: 820, minHeight: 620, alignment: .topLeading)
+        .ignoresSafeArea(.container, edges: .top)
+        .background(GatePassTheme.appBackground)
+        .frame(
+            minWidth: GatePassTheme.windowWidth,
+            minHeight: GatePassTheme.windowHeight,
+            alignment: .topLeading
+        )
     }
 
     @ViewBuilder
@@ -54,7 +74,7 @@ struct GatePassRootView: View {
         VStack(spacing: 0) {
             brand
 
-            VStack(spacing: 6) {
+            VStack(spacing: GatePassTheme.spaceXS) {
                 sidebarButton(
                     section: .appRelease,
                     title: gatePassCopy("APP放行", "App Access", language: language),
@@ -73,31 +93,30 @@ struct GatePassRootView: View {
                     systemImage: "gearshape.fill"
                 )
             }
-            .padding(.horizontal, 14)
+            .padding(.top, GatePassTheme.spaceS)
 
             Spacer(minLength: 20)
         }
+        .padding(GatePassTheme.sidebarPadding)
+        .padding(.top, 26)
     }
 
     private var brand: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: GatePassTheme.spaceS) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .frame(width: GatePassTheme.brandLogoSize, height: GatePassTheme.brandLogoSize)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .accessibilityHidden(true)
 
             Text("GatePass")
-                .font(.title3.weight(.bold))
+                .font(.system(size: 16, weight: .semibold))
 
-            Text(gatePassCopy("macOS 实用工具", "macOS utility", language: language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 58)
-        .padding(.bottom, 28)
+        .frame(height: GatePassTheme.brandHeight)
+        .padding(.horizontal, GatePassTheme.spaceS)
     }
 
     private func sidebarButton(
@@ -110,28 +129,44 @@ struct GatePassRootView: View {
         return Button {
             selection = section
         } label: {
-            HStack(spacing: 11) {
+            HStack(spacing: GatePassTheme.spaceS) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
-                    .frame(width: 22)
+                    .font(.system(size: GatePassTheme.navigationIconSize, weight: .medium))
+                    .frame(width: GatePassTheme.navigationIconSize)
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
 
                 Text(title)
-                    .font(.system(size: 15, weight: selected ? .semibold : .medium))
+                    .font(.system(size: 14, weight: selected ? .semibold : .medium))
                     .foregroundStyle(Color.primary)
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
-            .frame(height: 42)
+            .padding(.horizontal, 10)
+            .frame(height: GatePassTheme.navigationHeight)
             .contentShape(Rectangle())
-            .background(
-                selected ? Color.accentColor.opacity(0.11) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GatePassSidebarButtonStyle(isSelected: selected))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
+}
+
+private struct GatePassSidebarButtonStyle: ButtonStyle {
+    let isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                backgroundColor(isPressed: configuration.isPressed),
+                in: RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
+            )
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        if isPressed { return Color.accentColor.opacity(0.18) }
+        if isSelected { return Color.accentColor.opacity(0.12) }
+        return Color.clear
+    }
 }
