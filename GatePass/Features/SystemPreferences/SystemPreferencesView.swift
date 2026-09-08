@@ -19,20 +19,28 @@ struct SystemPreferencesView: View {
         }
     }
 
+    private var filterTitle: String {
+        if store.showPendingOnly {
+            return gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language)
+        }
+        if let selectedComponent {
+            return selectedComponent.title(language: language)
+        }
+        return gatePassCopy("全部", "All", language: language)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
 
-            ScrollView {
-                VStack(spacing: GatePassTheme.sectionSpacing) {
-                    filters
-                    settingsList
-                }
-                .frame(maxWidth: GatePassTheme.contentMaxWidth, alignment: .leading)
-                .padding(GatePassTheme.pageInset)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: GatePassTheme.sectionSpacing) {
+                filters
+                settingsList
             }
+            .frame(maxWidth: GatePassTheme.contentMaxWidth, maxHeight: .infinity, alignment: .topLeading)
+            .padding(GatePassTheme.pageInset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             Divider()
             applyBar
@@ -86,17 +94,17 @@ struct SystemPreferencesView: View {
         GatePassPageHeader(
             title: gatePassCopy("系统偏好", "System Preferences", language: language),
             subtitle: gatePassCopy(
-                    "集中检查和调整 macOS 偏好。更改会先进入待应用列表，不会自动修改系统。",
-                    "Review and tune macOS preferences. Changes stay pending until you explicitly apply them.",
-                    language: language
-                )
+                "集中检查和调整 macOS 偏好。更改会先进入待应用列表，不会自动修改系统。",
+                "Review and tune macOS preferences. Changes stay pending until you explicitly apply them.",
+                language: language
+            )
         ) {
-            HStack(spacing: 8) {
+            HStack(spacing: GatePassTheme.spaceS) {
                 Button {
                     Task { await store.scan() }
                 } label: {
                     if store.isScanning {
-                        HStack(spacing: 6) {
+                        HStack(spacing: GatePassTheme.spaceS) {
                             ProgressView()
                                 .controlSize(.small)
                             Text(gatePassCopy("正在扫描…", "Scanning…", language: language))
@@ -125,116 +133,89 @@ struct SystemPreferencesView: View {
     }
 
     private var filters: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
-                filterButton(
-                    gatePassCopy("全部", "All", language: language),
-                    systemImage: "square.grid.2x2",
-                    active: selectedComponent == nil && !store.showPendingOnly
-                ) {
+        HStack {
+            Menu {
+                Button {
                     selectedComponent = nil
                     store.showPendingOnly = false
+                } label: {
+                    Label(gatePassCopy("全部", "All", language: language), systemImage: "square.grid.2x2")
                 }
 
-                filterButton(
-                    gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language),
-                    systemImage: "clock.badge.exclamationmark",
-                    active: store.showPendingOnly
-                ) {
+                Button {
                     selectedComponent = nil
                     store.showPendingOnly = true
+                } label: {
+                    Label(
+                        gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language),
+                        systemImage: "clock.badge.exclamationmark"
+                    )
                 }
+
+                Divider()
 
                 ForEach(SystemPreferenceComponent.allCases) { component in
                     let count = store.catalog?.items.filter { $0.definition.component == component }.count ?? 0
                     if count > 0 {
-                        filterButton(
-                            "\(component.title(language: language)) \(count)",
-                            systemImage: component.icon,
-                            active: selectedComponent == component && !store.showPendingOnly
-                        ) {
+                        Button {
                             store.showPendingOnly = false
                             selectedComponent = component
+                        } label: {
+                            Label("\(component.title(language: language)) \(count)", systemImage: component.icon)
                         }
                     }
                 }
+            } label: {
+                Label(filterTitle, systemImage: "line.3.horizontal.decrease.circle")
             }
-        }
-    }
 
-    private func filterButton(
-        _ title: String,
-        systemImage: String,
-        active: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label {
-                Text(title)
-                    .foregroundStyle(.primary)
-            } icon: {
-                Image(systemName: systemImage)
-                    .foregroundStyle(active ? Color.accentColor : Color.secondary)
-            }
-                .font(.caption.weight(.medium))
-                .padding(.horizontal, 11)
-                .frame(height: 30)
-                .background(active ? Color.accentColor.opacity(0.10) : GatePassTheme.rowBackground, in: Capsule())
-                .overlay {
-                    Capsule().stroke(active ? Color.accentColor.opacity(0.45) : GatePassTheme.border, lineWidth: 1)
-                }
+            Spacer()
+
+            Text(gatePassCopy("显示 \(visibleItems.count) 项", "Showing \(visibleItems.count)", language: language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     @ViewBuilder
     private var settingsList: some View {
         if store.catalog == nil && store.isScanning {
-            GatePassPanel {
-                VStack(spacing: 10) {
-                    ProgressView()
-                    Text(gatePassCopy("正在读取系统偏好", "Reading system preferences", language: language))
-                        .font(.callout.weight(.medium))
-                    Text(gatePassCopy("首次扫描可能需要几秒钟。", "The first scan may take a few seconds.", language: language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 180)
+            VStack(spacing: GatePassTheme.spaceS) {
+                ProgressView()
+                Text(gatePassCopy("正在读取系统偏好", "Reading system preferences", language: language))
+                    .font(.callout.weight(.medium))
+                Text(gatePassCopy("首次扫描可能需要几秒钟。", "The first scan may take a few seconds.", language: language))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if visibleItems.isEmpty {
-            GatePassPanel {
-                GatePassEmptyStateView(
-                    title: gatePassCopy("没有匹配的偏好", "No matching preferences", language: language),
-                    systemImage: "slider.horizontal.3",
-                    description: gatePassCopy("更换分类或重新扫描后再试。", "Try another category or rescan.", language: language)
-                )
-                .frame(minHeight: 180)
-            }
+            GatePassEmptyStateView(
+                title: gatePassCopy("没有匹配的偏好", "No matching preferences", language: language),
+                systemImage: "slider.horizontal.3",
+                description: gatePassCopy("更换分类或重新扫描后再试。", "Try another category or rescan.", language: language)
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            GatePassPanel(padding: 0) {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
-                        SystemPreferenceRow(
-                            item: item,
-                            desiredOptimized: store.desiredOptimizedIDs.contains(item.id),
-                            pending: store.pendingSettingIDs.contains(item.id),
-                            language: language
-                        ) { enabled in
-                            store.setDesiredState(settingID: item.id, optimized: enabled)
-                        }
-                        if index < visibleItems.count - 1 {
-                            Divider().padding(.leading, 54)
-                        }
+            List {
+                ForEach(visibleItems) { item in
+                    SystemPreferenceRow(
+                        item: item,
+                        desiredOptimized: store.desiredOptimizedIDs.contains(item.id),
+                        pending: store.pendingSettingIDs.contains(item.id),
+                        language: language
+                    ) { enabled in
+                        store.setDesiredState(settingID: item.id, optimized: enabled)
                     }
                 }
             }
+            .listStyle(.inset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
     private var applyBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GatePassTheme.spaceM) {
             if store.pendingCount == 0 {
                 Label(
                     gatePassCopy("当前没有待应用的更改", "No pending changes", language: language),
@@ -261,7 +242,7 @@ struct SystemPreferencesView: View {
                 Task { await store.applyPendingChanges() }
             } label: {
                 if store.isApplying {
-                    HStack(spacing: 7) {
+                    HStack(spacing: GatePassTheme.spaceS) {
                         ProgressView().controlSize(.small)
                         Text(gatePassCopy("正在应用…", "Applying…", language: language))
                     }
@@ -275,7 +256,7 @@ struct SystemPreferencesView: View {
         }
         .font(.caption.weight(.medium))
         .padding(.horizontal, GatePassTheme.pageInset)
-        .frame(height: 62)
+        .padding(.vertical, GatePassTheme.spaceM)
         .background(.regularMaterial)
     }
 }
@@ -288,14 +269,14 @@ private struct SystemPreferenceRow: View {
     let onToggle: (Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GatePassTheme.spaceM) {
             Image(systemName: item.definition.component.icon)
-                .font(.system(size: 15, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 26)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 7) {
+            VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                HStack(spacing: GatePassTheme.spaceS) {
                     Text(item.definition.title(language: language))
                         .font(.callout.weight(.medium))
                     statusBadge
@@ -311,7 +292,7 @@ private struct SystemPreferenceRow: View {
                     .lineLimit(2)
             }
 
-            Spacer(minLength: 10)
+            Spacer(minLength: GatePassTheme.spaceM)
 
             if pending {
                 Label {
@@ -330,8 +311,6 @@ private struct SystemPreferenceRow: View {
                 .controlSize(.small)
                 .disabled(item.status == .unavailable)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
     }
 
     @ViewBuilder
@@ -355,7 +334,7 @@ private struct SystemPreferenceRow: View {
     }
 
     private func badge(_ text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: GatePassTheme.spaceXS) {
             Image(systemName: "circle.fill")
                 .font(.system(size: 5))
                 .foregroundStyle(color)
@@ -363,10 +342,10 @@ private struct SystemPreferenceRow: View {
             Text(text)
                 .foregroundStyle(.primary)
         }
-            .font(.caption.weight(.medium))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.10), in: Capsule())
+        .font(.caption.weight(.medium))
+        .padding(.horizontal, GatePassTheme.spaceS)
+        .padding(.vertical, GatePassTheme.spaceXS)
+        .background(color.opacity(0.10), in: Capsule())
     }
 }
 
@@ -376,12 +355,12 @@ private struct SystemPreferencesResultView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
             HStack {
                 Image(systemName: result.failedCount == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(result.failedCount == 0 ? Color.green : Color.orange)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                     Text(gatePassCopy("系统偏好处理完成", "System Preferences completed", language: language))
                         .font(.title3.bold())
                     Text(gatePassCopy(
@@ -395,24 +374,19 @@ private struct SystemPreferencesResultView: View {
                 Spacer()
             }
 
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    ForEach(result.items) { item in
-                        HStack(spacing: 10) {
-                            Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundStyle(item.verified ? Color.green : Color.red)
-                            Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
-                                .font(.callout)
-                            Spacer()
-                            Text(resultText(item))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(9)
-                        .background(GatePassTheme.rowBackground, in: RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous))
-                    }
+            List(result.items) { item in
+                HStack(spacing: GatePassTheme.spaceM) {
+                    Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(item.verified ? Color.green : Color.red)
+                    Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
+                        .font(.callout)
+                    Spacer()
+                    Text(resultText(item))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
+            .listStyle(.inset)
             .frame(maxHeight: 320)
 
             HStack {
@@ -421,7 +395,7 @@ private struct SystemPreferencesResultView: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(22)
+        .padding(GatePassTheme.spaceXL)
         .frame(minWidth: 500, idealWidth: 560, maxWidth: 720)
         .frame(minHeight: 260, idealHeight: 360, maxHeight: 620)
     }
