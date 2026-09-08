@@ -7,7 +7,7 @@ struct GatePassEmptyStateView: View {
     let description: String
 
     var body: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: GatePassTheme.spaceS) {
             Image(systemName: systemImage)
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(.secondary)
