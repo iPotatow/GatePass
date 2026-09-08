@@ -9,11 +9,11 @@ struct UpdateSettingsTab: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
             GroupBox(gatePassCopy("更新来源", "Update source", language: language)) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .center, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
+                    HStack(alignment: .center, spacing: GatePassTheme.spaceL) {
+                        VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                             Text(gatePassCopy("下载更新时使用的来源", "Source used for update downloads", language: language))
                                 .font(.callout)
                             Text(updateSourceDescription)
@@ -50,13 +50,13 @@ struct UpdateSettingsTab: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 4)
+                .padding(.vertical, GatePassTheme.spaceS)
+                .padding(.horizontal, GatePassTheme.spaceXS)
             }
 
             GroupBox(gatePassCopy("自动检查", "Automatic checks", language: language)) {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: GatePassTheme.spaceL) {
+                    VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                         Text(gatePassCopy("自动检查 GatePass 更新", "Automatically check for GatePass updates", language: language))
                             .font(.callout)
                         Text(updateDescription)
@@ -75,18 +75,18 @@ struct UpdateSettingsTab: View {
                     .labelsHidden()
                     .frame(width: 110)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 4)
+                .padding(.vertical, GatePassTheme.spaceS)
+                .padding(.horizontal, GatePassTheme.spaceXS)
             }
 
             GroupBox(gatePassCopy("最近版本", "Recent releases", language: language)) {
                 releaseHistory
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 6)
+                    .padding(.top, GatePassTheme.spaceS)
             }
             .frame(maxHeight: .infinity)
 
-            HStack(spacing: 10) {
+            HStack(spacing: GatePassTheme.spaceM) {
                 Button {
                     updater.checkForUpdates(sheet: false, force: false)
                 } label: {
@@ -109,7 +109,7 @@ struct UpdateSettingsTab: View {
             }
             .controlSize(.regular)
         }
-        .padding(.top, 6)
+        .padding(.top, GatePassTheme.spaceS)
     }
 
     private var updateDescription: String {
@@ -149,7 +149,7 @@ struct UpdateSettingsTab: View {
     @ViewBuilder
     private var releaseHistory: some View {
         if updater.releases.isEmpty {
-            VStack(spacing: 8) {
+            VStack(spacing: GatePassTheme.spaceS) {
                 Image(systemName: "shippingbox")
                     .font(.title2)
                     .foregroundStyle(.secondary)
@@ -164,9 +164,9 @@ struct UpdateSettingsTab: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
                     ForEach(Array(updater.releases.prefix(3))) { release in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: GatePassTheme.spaceS) {
                             Text(release.tagName)
                                 .font(.headline)
 
@@ -188,7 +188,7 @@ struct UpdateSettingsTab: View {
                         }
                     }
                 }
-                .padding(12)
+                .padding(GatePassTheme.spaceM)
             }
         }
     }
