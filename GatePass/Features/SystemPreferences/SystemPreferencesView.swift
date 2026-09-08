@@ -409,7 +409,7 @@ private struct SystemPreferencesResultView: View {
         .frame(minHeight: 260, idealHeight: 360, maxHeight: 620)
     }
 
-    private func resultText(_ item: SystemPreferencesChangeItemResult) -> String {
+    private func resultText(_ item: SystemPreferenceChangeItemResult) -> String {
         if item.verified {
             return item.outcome == .changed
             ? gatePassCopy("已修改", "Changed", language: language)
