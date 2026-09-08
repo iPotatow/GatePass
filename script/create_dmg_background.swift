@@ -1,5 +1,4 @@
 import CoreGraphics
-import CoreText
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -33,63 +32,76 @@ func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat =
     CGColor(red: red, green: green, blue: blue, alpha: alpha)
 }
 
-func drawText(_ value: String, at point: CGPoint, size: CGFloat, weight: String = "regular", color: CGColor) {
-    let fontName = weight == "bold" ? "HelveticaNeue-Bold" : "HelveticaNeue"
-    let font = CTFontCreateWithName(fontName as CFString, size, nil)
-    let attributed = NSAttributedString(
-        string: value,
-        attributes: [
-            NSAttributedString.Key(kCTFontAttributeName as String): font,
-            NSAttributedString.Key(kCTForegroundColorAttributeName as String): color
-        ]
-    )
-    let line = CTLineCreateWithAttributedString(attributed as CFAttributedString)
-    context.textPosition = point
-    CTLineDraw(line, context)
-}
-
-func drawArrow(from start: CGPoint, to end: CGPoint, color: CGColor) {
-    let angle = atan2(end.y - start.y, end.x - start.x)
-    let headLength: CGFloat = 9
-    let headAngle: CGFloat = .pi / 6
-
+func stroke(
+    from start: CGPoint,
+    to end: CGPoint,
+    width: CGFloat,
+    color: CGColor
+) {
     context.saveGState()
     context.setStrokeColor(color)
-    context.setLineWidth(2)
+    context.setLineWidth(width)
     context.setLineCap(.round)
+    context.setLineJoin(.round)
     context.move(to: start)
     context.addLine(to: end)
     context.strokePath()
-
-    let arrowHead = CGMutablePath()
-    arrowHead.move(to: end)
-    arrowHead.addLine(to: CGPoint(
-        x: end.x - headLength * cos(angle - headAngle),
-        y: end.y - headLength * sin(angle - headAngle)
-    ))
-    arrowHead.move(to: end)
-    arrowHead.addLine(to: CGPoint(
-        x: end.x - headLength * cos(angle + headAngle),
-        y: end.y - headLength * sin(angle + headAngle)
-    ))
-    context.addPath(arrowHead)
-    context.strokePath()
     context.restoreGState()
+}
+
+func drawPencilArrow() {
+    let graphite = (red: CGFloat(0.20), green: CGFloat(0.21), blue: CGFloat(0.22))
+
+    // Several slightly offset graphite strokes create the rough, hand-drawn
+    // pencil texture without relying on a raster asset.
+    let shaftStrokes: [(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)] = [
+        (218, 188.1, 321, 190.0, 3.2),
+        (220, 189.7, 322, 190.8, 2.8),
+        (217, 191.1, 321, 191.7, 3.0),
+        (219, 192.5, 320, 192.2, 2.5),
+        (221, 186.9, 319, 188.5, 2.2),
+        (216, 190.4, 321, 189.1, 1.8),
+        (222, 193.1, 318, 191.2, 1.5)
+    ]
+
+    for (index, item) in shaftStrokes.enumerated() {
+        let alpha = CGFloat(0.48 + Double(index % 4) * 0.08)
+        stroke(
+            from: CGPoint(x: item.0, y: item.1),
+            to: CGPoint(x: item.2, y: item.3),
+            width: item.4,
+            color: color(graphite.red, graphite.green, graphite.blue, alpha)
+        )
+    }
+
+    let upperHead: [(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)] = [
+        (296, 211, 323, 190, 3.6),
+        (298, 208, 322, 189, 3.0),
+        (294, 213, 321, 191, 2.4),
+        (300, 207, 324, 190, 1.8)
+    ]
+    let lowerHead: [(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)] = [
+        (296, 169, 323, 190, 3.6),
+        (298, 172, 322, 191, 3.0),
+        (294, 167, 321, 189, 2.4),
+        (300, 173, 324, 190, 1.8)
+    ]
+
+    for (index, item) in (upperHead + lowerHead).enumerated() {
+        let alpha = CGFloat(0.54 + Double(index % 4) * 0.07)
+        stroke(
+            from: CGPoint(x: item.0, y: item.1),
+            to: CGPoint(x: item.2, y: item.3),
+            width: item.4,
+            color: color(graphite.red, graphite.green, graphite.blue, alpha)
+        )
+    }
 }
 
 context.scaleBy(x: scale, y: scale)
 context.setFillColor(color(0.97, 0.98, 1.0))
 context.fill(CGRect(origin: .zero, size: logicalSize))
-
-let navy = color(0.08, 0.12, 0.22)
-let secondary = color(0.35, 0.41, 0.53)
-let blue = color(0.16, 0.38, 0.86)
-
-context.setFillColor(blue)
-context.fill(CGRect(x: 34, y: 326, width: 3, height: 22))
-drawText("Install GatePass", at: CGPoint(x: 50, y: 328), size: 20, weight: "bold", color: navy)
-drawText("Drag the app to Applications", at: CGPoint(x: 50, y: 304), size: 11, color: secondary)
-drawArrow(from: CGPoint(x: 224, y: 190), to: CGPoint(x: 316, y: 190), color: blue)
+drawPencilArrow()
 
 guard let image = context.makeImage(),
       let destination = CGImageDestinationCreateWithURL(
