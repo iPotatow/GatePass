@@ -8,21 +8,20 @@ struct AboutView: View {
     }
 
     var body: some View {
-        VStack(spacing: 22) {
-            Spacer(minLength: 8)
+        VStack(spacing: GatePassTheme.spaceXL) {
+            Spacer(minLength: GatePassTheme.spaceS)
 
-            VStack(spacing: 12) {
+            VStack(spacing: GatePassTheme.spaceM) {
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .interpolation(.high)
+                    .scaledToFit()
                     .frame(width: 88, height: 88)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .shadow(color: .black.opacity(0.12), radius: 14, y: 7)
                     .accessibilityHidden(true)
 
-                VStack(spacing: 4) {
+                VStack(spacing: GatePassTheme.spaceXS) {
                     Text(Bundle.main.name)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.title2.weight(.bold))
                     Text(gatePassCopy(
                         "版本 \(Bundle.main.version) · 构建 \(Bundle.main.buildVersion)",
                         "Version \(Bundle.main.version) · Build \(Bundle.main.buildVersion)",
@@ -40,10 +39,10 @@ struct AboutView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(3)
+                    .lineSpacing(GatePassTheme.spaceXS)
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: GatePassTheme.spaceM) {
                 Button {
                     NSWorkspace.shared.open(URL(string: "https://github.com/sponsors/iPotatow")!)
                 } label: {
@@ -65,6 +64,6 @@ struct AboutView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(24)
+        .padding(GatePassTheme.spaceXL)
     }
 }
