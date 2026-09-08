@@ -19,16 +19,6 @@ struct SystemPreferencesView: View {
         }
     }
 
-    private var filterTitle: String {
-        if store.showPendingOnly {
-            return gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language)
-        }
-        if let selectedComponent {
-            return selectedComponent.title(language: language)
-        }
-        return gatePassCopy("全部", "All", language: language)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -133,48 +123,67 @@ struct SystemPreferencesView: View {
     }
 
     private var filters: some View {
-        HStack {
-            Menu {
-                Button {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 7) {
+                filterButton(
+                    gatePassCopy("全部", "All", language: language),
+                    systemImage: "square.grid.2x2",
+                    active: selectedComponent == nil && !store.showPendingOnly
+                ) {
                     selectedComponent = nil
                     store.showPendingOnly = false
-                } label: {
-                    Label(gatePassCopy("全部", "All", language: language), systemImage: "square.grid.2x2")
                 }
 
-                Button {
+                filterButton(
+                    gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language),
+                    systemImage: "clock.badge.exclamationmark",
+                    active: store.showPendingOnly
+                ) {
                     selectedComponent = nil
                     store.showPendingOnly = true
-                } label: {
-                    Label(
-                        gatePassCopy("待应用 \(store.pendingCount)", "Pending \(store.pendingCount)", language: language),
-                        systemImage: "clock.badge.exclamationmark"
-                    )
                 }
-
-                Divider()
 
                 ForEach(SystemPreferenceComponent.allCases) { component in
                     let count = store.catalog?.items.filter { $0.definition.component == component }.count ?? 0
                     if count > 0 {
-                        Button {
+                        filterButton(
+                            "\(component.title(language: language)) \(count)",
+                            systemImage: component.icon,
+                            active: selectedComponent == component && !store.showPendingOnly
+                        ) {
                             store.showPendingOnly = false
                             selectedComponent = component
-                        } label: {
-                            Label("\(component.title(language: language)) \(count)", systemImage: component.icon)
                         }
                     }
                 }
-            } label: {
-                Label(filterTitle, systemImage: "line.3.horizontal.decrease.circle")
             }
-
-            Spacer()
-
-            Text(gatePassCopy("显示 \(visibleItems.count) 项", "Showing \(visibleItems.count)", language: language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
+    }
+
+    private func filterButton(
+        _ title: String,
+        systemImage: String,
+        active: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label {
+                Text(title)
+                    .foregroundStyle(.primary)
+            } icon: {
+                Image(systemName: systemImage)
+                    .foregroundStyle(active ? Color.accentColor : Color.secondary)
+            }
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 11)
+                .frame(height: 30)
+                .background(active ? Color.accentColor.opacity(0.10) : GatePassTheme.rowBackground, in: Capsule())
+                .overlay {
+                    Capsule().stroke(active ? Color.accentColor.opacity(0.45) : GatePassTheme.border, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     @ViewBuilder
@@ -400,7 +409,7 @@ private struct SystemPreferencesResultView: View {
         .frame(minHeight: 260, idealHeight: 360, maxHeight: 620)
     }
 
-    private func resultText(_ item: SystemPreferenceChangeItemResult) -> String {
+    private func resultText(_ item: SystemPreferencesChangeItemResult) -> String {
         if item.verified {
             return item.outcome == .changed
             ? gatePassCopy("已修改", "Changed", language: language)
