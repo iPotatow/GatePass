@@ -11,8 +11,8 @@ struct SystemPreferencesHistoryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: GatePassTheme.spaceM) {
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                     Text(gatePassCopy("操作历史", "History", language: language))
                         .font(.title3.bold())
                     Text(gatePassCopy(
@@ -40,13 +40,13 @@ struct SystemPreferencesHistoryView: View {
                 }
                 .keyboardShortcut(.defaultAction)
             }
-            .padding(20)
+            .padding(GatePassTheme.spaceXL)
 
             Divider()
 
             Group {
                 if isLoading {
-                    VStack(spacing: 10) {
+                    VStack(spacing: GatePassTheme.spaceS) {
                         ProgressView()
                         Text(gatePassCopy("正在读取历史记录…", "Loading history…", language: language))
                             .font(.caption)
@@ -65,14 +65,10 @@ struct SystemPreferencesHistoryView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(records) { record in
-                                HistoryRecordCard(record: record, language: language)
-                            }
-                        }
-                        .padding(16)
+                    List(records) { record in
+                        HistoryRecordRow(record: record, language: language)
                     }
+                    .listStyle(.inset)
                 }
             }
         }
@@ -89,11 +85,10 @@ struct SystemPreferencesHistoryView: View {
     }
 }
 
-private struct HistoryRecordCard: View {
+private struct HistoryRecordRow: View {
     let record: SystemPreferencesChangeResult
     let language: AppLanguage
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expanded = false
 
     private var verifiedCount: Int {
@@ -101,84 +96,48 @@ private struct HistoryRecordCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
-                    expanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: record.failedCount == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundStyle(record.failedCount == 0 ? Color.green : Color.orange)
+        DisclosureGroup(isExpanded: $expanded) {
+            VStack(spacing: 0) {
+                ForEach(Array(record.items.enumerated()), id: \.element.id) { index, item in
+                    HStack(spacing: GatePassTheme.spaceM) {
+                        Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(item.verified ? Color.green : Color.red)
+                            .frame(width: 16)
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
-                            .font(.callout.weight(.medium))
-                        Text(gatePassCopy(
-                            "修改 \(record.changedCount) 项 · 验证 \(verifiedCount) 项 · 失败 \(record.failedCount) 项",
-                            "Changed \(record.changedCount) · Verified \(verifiedCount) · Failed \(record.failedCount)",
-                            language: language
-                        ))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
+                            .font(.caption)
+                            .lineLimit(1)
+
+                        Spacer(minLength: GatePassTheme.spaceM)
+
+                        Text(resultText(item))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(item.verified ? Color.secondary : Color.orange)
                     }
+                    .padding(.vertical, GatePassTheme.spaceXS)
 
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                }
-                .contentShape(Rectangle())
-                .padding(13)
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(Text(
-                expanded
-                    ? gatePassCopy("已展开", "Expanded", language: language)
-                    : gatePassCopy("已折叠", "Collapsed", language: language)
-            ))
-            .accessibilityHint(Text(
-                gatePassCopy("双击以展开或折叠详情", "Double-click to expand or collapse details", language: language)
-            ))
-
-            if expanded {
-                Divider()
-                    .padding(.leading, 42)
-
-                VStack(spacing: 0) {
-                    ForEach(Array(record.items.enumerated()), id: \.element.id) { index, item in
-                        HStack(spacing: 10) {
-                            Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundStyle(item.verified ? Color.green : Color.red)
-                                .frame(width: 16)
-
-                            Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
-                                .font(.caption)
-                                .lineLimit(1)
-
-                            Spacer(minLength: 12)
-
-                            Text(resultText(item))
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(item.verified ? Color.secondary : Color.orange)
-                        }
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 8)
-
-                        if index < record.items.count - 1 {
-                            Divider()
-                                .padding(.leading, 42)
-                        }
+                    if index < record.items.count - 1 {
+                        Divider()
                     }
                 }
             }
-        }
-        .background(GatePassTheme.rowBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(GatePassTheme.border, lineWidth: 1)
+        } label: {
+            HStack(spacing: GatePassTheme.spaceM) {
+                Image(systemName: record.failedCount == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .foregroundStyle(record.failedCount == 0 ? Color.green : Color.orange)
+
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                    Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.callout.weight(.medium))
+                    Text(gatePassCopy(
+                        "修改 \(record.changedCount) 项 · 验证 \(verifiedCount) 项 · 失败 \(record.failedCount) 项",
+                        "Changed \(record.changedCount) · Verified \(verifiedCount) · Failed \(record.failedCount)",
+                        language: language
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
