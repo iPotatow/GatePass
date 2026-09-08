@@ -58,7 +58,7 @@ struct SettingsView: View {
         .labelsHidden()
         .controlSize(.large)
         .font(.callout.weight(.medium))
-        .frame(width: 380, height: 36)
+        .frame(width: 380)
         .accessibilityLabel(gatePassCopy("设置页面", "Settings section", language: language))
     }
 
