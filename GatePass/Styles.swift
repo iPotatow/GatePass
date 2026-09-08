@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum GatePassTheme {
-    // A compact 4-point scale keeps every screen on the same visual rhythm.
+    // Product-controlled layout follows the shared 4-point spacing grid.
     static let spaceXS: CGFloat = 4
     static let spaceS: CGFloat = 8
     static let spaceM: CGFloat = 12
@@ -15,15 +15,22 @@ enum GatePassTheme {
     static let pageInset = spaceL
     static let sectionSpacing = spaceL
     static let panelPadding = spaceL
+
     static let sidebarWidth: CGFloat = 220
     static let sidebarPadding = spaceS
+    static let sidebarTitlebarClearance: CGFloat = spaceXXL
     static let brandHeight: CGFloat = 56
     static let brandLogoSize: CGFloat = 40
     static let navigationHeight: CGFloat = 38
     static let navigationIconSize: CGFloat = 16
+    static let navigationHorizontalPadding: CGFloat = 10
+
     static let dashboardPrimaryPanelMinWidth: CGFloat = 300
     static let dashboardRecentPanelMinWidth: CGFloat = 384
-    static let panelRadius: CGFloat = 14
+
+    // Product shell and custom business surfaces intentionally use different radii.
+    static let contentRadius: CGFloat = 14
+    static let panelRadius: CGFloat = 10
     static let rowRadius: CGFloat = 8
     static let contentMaxWidth: CGFloat = 1_080
 
@@ -45,6 +52,10 @@ enum GatePassTheme {
 
     static var border: Color {
         Color(nsColor: .separatorColor).opacity(0.65)
+    }
+
+    static var focusRing: Color {
+        Color(nsColor: .keyboardFocusIndicatorColor)
     }
 }
 
@@ -68,7 +79,6 @@ struct GatePassPanel<Content: View>: View {
                 RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
                     .strokeBorder(GatePassTheme.border, lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.025), radius: 8, y: 3)
     }
 }
 
@@ -125,9 +135,9 @@ struct GatePassStatusPill: View {
             Image(systemName: systemImage)
                 .foregroundStyle(color)
         }
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, GatePassTheme.spaceM)
-            .frame(minHeight: 28)
-            .background(color.opacity(0.1), in: Capsule())
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, GatePassTheme.spaceM)
+        .frame(minHeight: 28)
+        .background(color.opacity(0.1), in: Capsule())
     }
 }
