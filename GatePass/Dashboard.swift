@@ -108,23 +108,22 @@ struct Dashboard: View {
                         Color.accentColor.opacity(isDropTargeted ? 0.75 : 0.28),
                         style: StrokeStyle(
                             lineWidth: isDropTargeted ? 2 : 1,
-                            dash: isDropTargeted ? [] : [7, 5]
+                            dash: isDropTargeted ? [] : [8, 4]
                         )
                     )
 
                 VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
                             .fill(Color.accentColor)
                         Image(systemName: appState.doneQuarantine ? "checkmark" : "lock.open.fill")
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(.white)
                     }
                     .frame(width: 48, height: 48)
-                    .shadow(color: Color.accentColor.opacity(0.2), radius: 8, y: 4)
                     .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 7) {
+                    VStack(alignment: .leading, spacing: GatePassTheme.spaceS) {
                         Text(isDropTargeted
                              ? gatePassCopy("松开即可处理", "Release to process", language: language)
                              : gatePassCopy("解除 App 隔离", "Remove App quarantine", language: language))
@@ -139,7 +138,7 @@ struct Dashboard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: GatePassTheme.spaceS)
 
                     Button {
                         isFileImporterPresented = true
@@ -174,7 +173,7 @@ struct Dashboard: View {
         GatePassPanel {
             VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
                 HStack(alignment: .center, spacing: GatePassTheme.spaceM) {
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                         Text(gatePassCopy("最近安装", "Recently installed", language: language))
                             .font(.headline)
                         Text(gatePassCopy("过去 7 天 · 可拖入左侧，也可直接处理", "Last 7 days · drag left or process directly", language: language))
@@ -190,13 +189,12 @@ struct Dashboard: View {
                         if appState.isScanningRecentApps {
                             ProgressView()
                                 .controlSize(.small)
-                                .frame(width: 16, height: 16)
                         } else {
                             Image(systemName: "arrow.clockwise")
                         }
                     }
                     .buttonStyle(.borderless)
-                    .frame(width: 32, height: 32)
+                    .controlSize(.small)
                     .disabled(appState.isScanningRecentApps)
                     .help(gatePassCopy("刷新最近安装的 App", "Refresh recently installed apps", language: language))
                     .accessibilityLabel(gatePassCopy("刷新最近安装的 App", "Refresh recently installed apps", language: language))
@@ -220,7 +218,7 @@ struct Dashboard: View {
                         )
                     } else {
                         ScrollView {
-                            LazyVStack(spacing: 4) {
+                            LazyVStack(spacing: GatePassTheme.spaceXS) {
                                 ForEach(appState.recentApps) { app in
                                     RecentAppRow(app: app) {
                                         processApplications([app.url])
@@ -230,7 +228,7 @@ struct Dashboard: View {
                                     }
                                 }
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, GatePassTheme.spaceXS)
                         }
                     }
                 }
@@ -241,7 +239,7 @@ struct Dashboard: View {
     }
 
     private var statusBar: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: GatePassTheme.spaceS) {
             if appState.isLoading {
                 ProgressView()
                     .controlSize(.small)
@@ -330,14 +328,14 @@ private struct RecentAppRow: View {
     let onProcess: () -> Void
 
     var body: some View {
-        HStack(spacing: 11) {
+        HStack(spacing: GatePassTheme.spaceM) {
             Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
                 .resizable()
                 .interpolation(.high)
                 .frame(width: 34, height: 34)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                 Text(app.name)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
@@ -350,7 +348,7 @@ private struct RecentAppRow: View {
                     .foregroundStyle(.secondary)
             }
 
-            Spacer(minLength: 10)
+            Spacer(minLength: GatePassTheme.spaceM)
 
             Button(gatePassCopy("解除", "Remove", language: language)) {
                 onProcess()
@@ -359,8 +357,8 @@ private struct RecentAppRow: View {
             .controlSize(.small)
             .help(gatePassCopy("移除 \(app.name) 的下载隔离属性", "Remove the quarantine attribute from \(app.name)", language: language))
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, GatePassTheme.spaceM)
+        .padding(.vertical, GatePassTheme.spaceS)
         .background(GatePassTheme.rowBackground, in: RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous))
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
@@ -385,7 +383,7 @@ private struct ContentUnavailableViewCompat: View {
     var showsProgress = false
 
     var body: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: GatePassTheme.spaceS) {
             if showsProgress {
                 ProgressView()
                     .controlSize(.regular)
@@ -404,7 +402,7 @@ private struct ContentUnavailableViewCompat: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)
         }
-        .padding(20)
+        .padding(GatePassTheme.spaceXL)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
     }
