@@ -10,15 +10,16 @@ struct GatePassEmptyStateView: View {
         VStack(spacing: GatePassTheme.spaceS) {
             Image(systemName: systemImage)
                 .font(.system(size: 24, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GatePassTheme.textSecondary)
             Text(title)
-                .font(.callout.weight(.semibold))
+                .gatePassTypography(GatePassTheme.typographyControl)
+                .foregroundStyle(GatePassTheme.textPrimary)
             Text(description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .gatePassTypography(GatePassTheme.typographyCaption)
+                .foregroundStyle(GatePassTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(20)
+        .padding(GatePassTheme.spaceL)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
