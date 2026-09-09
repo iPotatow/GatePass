@@ -2,19 +2,8 @@ name: Release GatePass
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - VERSION
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      publish_release:
-        description: "Create or update the v<VERSION> GitHub Release"
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: write
@@ -31,28 +20,56 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve release version
+      - name: Resolve immutable release version
         id: version
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="$(tr -d '[:space:]' < VERSION)"
 
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION must use semantic versioning, for example 0.1.0. Got: $VERSION" >&2
+            echo "VERSION must use semantic versioning, for example 0.2.3. Got: $VERSION" >&2
             exit 1
           fi
 
           TAG="v$VERSION"
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$TAG" ]]; then
-            echo "Tag $GITHUB_REF_NAME does not match VERSION ($TAG)." >&2
+          if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Release builds must be triggered by the exact VERSION tag ($TAG). Got: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          TAG_COMMIT="$(git rev-list -n 1 "$TAG")"
+          if [[ "$TAG_COMMIT" != "$GITHUB_SHA" ]]; then
+            echo "Tag $TAG resolves to $TAG_COMMIT but the workflow is building $GITHUB_SHA." >&2
             exit 1
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Refuse mutable releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. GatePass releases are immutable; bump VERSION and create a new tag." >&2
+            exit 1
+          fi
+
       - name: Report Xcode version
         run: xcodebuild -version
+
+      - name: Run updater regression suite
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library \
+            Tests/GatePassUpdaterTests.swift \
+            GatePass/Utilities/GatePassUpdater.swift \
+            -o "$RUNNER_TEMP/gatepass-updater-tests"
+          "$RUNNER_TEMP/gatepass-updater-tests"
 
       - name: Install DMG tooling
         run: brew install create-dmg
@@ -99,16 +116,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish GitHub Release
-        if: github.event_name == 'push' || inputs.publish_release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
-          name: GatePass ${{ steps.version.outputs.version }}
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          files: |
-            ${{ runner.temp }}/release/GatePass.zip
-            ${{ runner.temp }}/release/GatePass-${{ steps.version.outputs.version }}.dmg
-            ${{ runner.temp }}/release/SHA256SUMS
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DIR: ${{ runner.temp }}/release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            "$RELEASE_DIR/GatePass.zip" \
+            "$RELEASE_DIR/GatePass-$VERSION.dmg" \
+            "$RELEASE_DIR/SHA256SUMS" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "GatePass $VERSION" \
+            --generate-notes
