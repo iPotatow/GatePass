@@ -21,7 +21,9 @@ struct SettingsView: View {
                 title: gatePassCopy("设置", "Settings", language: language)
             )
 
-            Divider()
+            Rectangle()
+                .fill(GatePassTheme.divider)
+                .frame(height: GatePassTheme.dividerWidth)
 
             VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
                 settingsTabPicker
