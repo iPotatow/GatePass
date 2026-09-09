@@ -18,12 +18,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             GatePassPageHeader(
-                title: gatePassCopy("设置", "Settings", language: language),
-                subtitle: gatePassCopy(
-                    "管理 GatePass 的通用选项、更新与应用信息。",
-                    "Manage GatePass preferences, updates, and app information.",
-                    language: language
-                )
+                title: gatePassCopy("设置", "Settings", language: language)
             )
 
             Divider()
@@ -35,8 +30,7 @@ struct SettingsView: View {
                 settingsContent
                     .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .padding(.horizontal, GatePassTheme.pageInset)
-            .padding(.vertical, GatePassTheme.spaceL)
+            .padding(GatePassTheme.contentBodyPadding)
             .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -56,9 +50,8 @@ struct SettingsView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .controlSize(.large)
-        .font(.callout.weight(.medium))
-        .frame(width: 380)
+        .font(GatePassTheme.typeControl)
+        .frame(width: 380, height: GatePassTheme.controlHeightDefault)
         .accessibilityLabel(gatePassCopy("设置页面", "Settings section", language: language))
     }
 

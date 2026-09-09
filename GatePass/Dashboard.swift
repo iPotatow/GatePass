@@ -47,7 +47,7 @@ struct Dashboard: View {
 
                 statusBar
             }
-            .padding(GatePassTheme.pageInset)
+            .padding(GatePassTheme.contentBodyPadding)
         }
         .frame(
             minWidth: 0,
@@ -74,26 +74,28 @@ struct Dashboard: View {
 
     private var header: some View {
         GatePassPageHeader(
-            title: gatePassCopy("App 放行", "App Access", language: language),
-            subtitle: gatePassCopy("只为你信任的 App 解除下载隔离", "Remove quarantine from apps you trust", language: language)
+            title: gatePassCopy("App 放行", "App Access", language: language)
         ) {
-            if updater.hasNewerGatePassRelease {
-                Button {
-                    updater.sheet = true
-                } label: {
-                    Label(gatePassCopy("有可用更新", "Update available", language: language), systemImage: "arrow.down.app")
+            HStack(spacing: GatePassTheme.pageHeaderActionGap) {
+                if updater.hasNewerGatePassRelease {
+                    Button {
+                        updater.sheet = true
+                    } label: {
+                        Label(gatePassCopy("有可用更新", "Update available", language: language), systemImage: "arrow.down.app")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(height: GatePassTheme.controlHeightCompact)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
 
-            GatePassStatusPill(
-                text: appState.isGatekeeperAssessmentEnabled
-                    ? gatePassCopy("Gatekeeper 已启用", "Gatekeeper on", language: language)
-                    : gatePassCopy("Gatekeeper 已关闭", "Gatekeeper off", language: language),
-                systemImage: appState.isGatekeeperAssessmentEnabled ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
-                color: appState.isGatekeeperAssessmentEnabled ? .green : .orange
-            )
+                GatePassStatusPill(
+                    text: appState.isGatekeeperAssessmentEnabled
+                        ? gatePassCopy("Gatekeeper 已启用", "Gatekeeper on", language: language)
+                        : gatePassCopy("Gatekeeper 已关闭", "Gatekeeper off", language: language),
+                    systemImage: appState.isGatekeeperAssessmentEnabled ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
+                    color: appState.isGatekeeperAssessmentEnabled ? .green : .orange
+                )
+            }
         }
     }
 
@@ -117,7 +119,7 @@ struct Dashboard: View {
                         RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
                             .fill(Color.accentColor)
                         Image(systemName: appState.doneQuarantine ? "checkmark" : "lock.open.fill")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.system(size: 24, weight: .semibold))
                             .foregroundStyle(.white)
                     }
                     .frame(width: 48, height: 48)
@@ -127,13 +129,13 @@ struct Dashboard: View {
                         Text(isDropTargeted
                              ? gatePassCopy("松开即可处理", "Release to process", language: language)
                              : gatePassCopy("解除 App 隔离", "Remove App quarantine", language: language))
-                            .font(.title2.weight(.semibold))
+                            .font(GatePassTheme.typeSectionTitle)
                         Text(gatePassCopy(
                             "拖入或选择你确认来源可信的 .app。GatePass 只移除下载隔离属性，不会更改 Gatekeeper 设置。",
                             "Drop or choose an .app you trust. GatePass only removes its quarantine attribute and does not change Gatekeeper settings.",
                             language: language
                         ))
-                            .font(.callout)
+                            .font(GatePassTheme.typeBody)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -148,15 +150,17 @@ struct Dashboard: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .frame(height: GatePassTheme.controlHeightLarge)
+                    .font(GatePassTheme.typeControl)
                     .tint(Color.accentColor)
                     .disabled(appState.isLoading)
                     .keyboardShortcut("o", modifiers: .command)
 
                     Label(gatePassCopy("支持一次选择多个 App", "You can choose multiple apps", language: language), systemImage: "checkmark.shield")
-                        .font(.caption)
+                        .font(GatePassTheme.typeCaption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(GatePassTheme.pageInset)
+                .padding(GatePassTheme.contentBodyPadding)
             }
             .onDrop(
                 of: acceptedDropTypes,
@@ -175,9 +179,9 @@ struct Dashboard: View {
                 HStack(alignment: .center, spacing: GatePassTheme.spaceM) {
                     VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                         Text(gatePassCopy("最近安装", "Recently installed", language: language))
-                            .font(.headline)
+                            .font(GatePassTheme.typeSectionTitle)
                         Text(gatePassCopy("过去 7 天 · 可拖入左侧，也可直接处理", "Last 7 days · drag left or process directly", language: language))
-                            .font(.caption)
+                            .font(GatePassTheme.typeCaption)
                             .foregroundStyle(.secondary)
                     }
 
@@ -195,6 +199,7 @@ struct Dashboard: View {
                     }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
+                    .frame(width: GatePassTheme.controlHeightCompact, height: GatePassTheme.controlHeightCompact)
                     .disabled(appState.isScanningRecentApps)
                     .help(gatePassCopy("刷新最近安装的 App", "Refresh recently installed apps", language: language))
                     .accessibilityLabel(gatePassCopy("刷新最近安装的 App", "Refresh recently installed apps", language: language))
@@ -250,13 +255,13 @@ struct Dashboard: View {
             }
 
             Text(statusText)
-                .font(.caption)
+                .font(GatePassTheme.typeCaption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
 
             Spacer()
         }
-        .frame(minHeight: 22)
+        .frame(minHeight: GatePassTheme.spaceXL)
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.updatesFrequently)
     }
@@ -332,19 +337,19 @@ private struct RecentAppRow: View {
             Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 34, height: 34)
+                .frame(width: GatePassTheme.spaceXXL, height: GatePassTheme.spaceXXL)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                 Text(app.name)
-                    .font(.callout.weight(.medium))
+                    .font(GatePassTheme.typeControl)
                     .lineLimit(1)
                 Text(gatePassCopy(
                     "安装于 \(app.installedAt.formatted(date: .abbreviated, time: .omitted))",
                     "Installed \(app.installedAt.formatted(date: .abbreviated, time: .omitted))",
                     language: language
                 ))
-                    .font(.caption)
+                    .font(GatePassTheme.typeCaption)
                     .foregroundStyle(.secondary)
             }
 
@@ -355,6 +360,8 @@ private struct RecentAppRow: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+            .frame(height: GatePassTheme.controlHeightCompact)
+            .font(GatePassTheme.typeControl)
             .help(gatePassCopy("移除 \(app.name) 的下载隔离属性", "Remove the quarantine attribute from \(app.name)", language: language))
         }
         .padding(.horizontal, GatePassTheme.spaceM)
@@ -395,9 +402,9 @@ private struct ContentUnavailableViewCompat: View {
             }
 
             Text(title)
-                .font(.callout.weight(.semibold))
+                .font(GatePassTheme.typeControl)
             Text(message)
-                .font(.caption)
+                .font(GatePassTheme.typeCaption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)

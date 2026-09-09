@@ -11,7 +11,6 @@ struct GatePassRootView: View {
     @StateObject private var preferencesStore = SystemPreferencesStore.live()
     @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.system.rawValue
     @FocusState private var focusedSection: GatePassMainSection?
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     private var language: AppLanguage {
         AppLanguage(rawValue: languageRaw) ?? .system
@@ -43,12 +42,8 @@ struct GatePassRootView: View {
                 .clipShape(
                     RoundedRectangle(cornerRadius: GatePassTheme.contentRadius, style: .continuous)
                 )
-                .overlay {
-                    if colorSchemeContrast == .increased {
-                        RoundedRectangle(cornerRadius: GatePassTheme.contentRadius, style: .continuous)
-                            .strokeBorder(GatePassTheme.border, lineWidth: 1)
-                    }
-                }
+                .shadow(color: .black.opacity(0.10), radius: 3, x: 0, y: 1)
+                .shadow(color: .black.opacity(0.10), radius: 2, x: 0, y: 1)
                 .padding(
                     EdgeInsets(
                         top: GatePassTheme.contentInset,
@@ -147,7 +142,7 @@ struct GatePassRootView: View {
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
 
                 Text(title)
-                    .font(.system(size: 14, weight: selected ? .semibold : .medium))
+                    .font(GatePassTheme.typeControl)
                     .foregroundStyle(Color.primary)
 
                 Spacer(minLength: 0)

@@ -29,7 +29,7 @@ struct SystemPreferencesView: View {
                 settingsList
             }
             .frame(maxWidth: GatePassTheme.contentMaxWidth, maxHeight: .infinity, alignment: .topLeading)
-            .padding(GatePassTheme.pageInset)
+            .padding(GatePassTheme.contentBodyPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             Divider()
@@ -68,7 +68,7 @@ struct SystemPreferencesView: View {
                 set: { if !$0 { store.errorMessage = nil } }
             )
         ) {
-            Button(gatePassCopy("好", "OK", language: language)) { store.errorMessage = nil }
+            Button(gatePassCopy("关闭", "Close", language: language)) { store.errorMessage = nil }
         } message: {
             Text(store.errorMessage ?? "")
         }
@@ -82,14 +82,9 @@ struct SystemPreferencesView: View {
 
     private var header: some View {
         GatePassPageHeader(
-            title: gatePassCopy("系统偏好", "System Preferences", language: language),
-            subtitle: gatePassCopy(
-                "集中检查和调整 macOS 偏好。更改会先进入待应用列表，不会自动修改系统。",
-                "Review and tune macOS preferences. Changes stay pending until you explicitly apply them.",
-                language: language
-            )
+            title: gatePassCopy("系统偏好", "System Preferences", language: language)
         ) {
-            HStack(spacing: GatePassTheme.spaceS) {
+            HStack(spacing: GatePassTheme.pageHeaderActionGap) {
                 Button {
                     Task { await store.scan() }
                 } label: {
@@ -103,6 +98,7 @@ struct SystemPreferencesView: View {
                         Label(gatePassCopy("重新扫描", "Rescan", language: language), systemImage: "arrow.clockwise")
                     }
                 }
+                .frame(height: GatePassTheme.controlHeightCompact)
                 .disabled(store.isScanning || store.isApplying)
 
                 Button {
@@ -110,6 +106,7 @@ struct SystemPreferencesView: View {
                 } label: {
                     Label(gatePassCopy("恢复上次更改", "Restore previous changes", language: language), systemImage: "arrow.uturn.backward")
                 }
+                .frame(height: GatePassTheme.controlHeightCompact)
                 .disabled(store.catalog?.recoveryAvailable != true || store.isScanning || store.isApplying)
 
                 Button {
@@ -117,6 +114,7 @@ struct SystemPreferencesView: View {
                 } label: {
                     Label(gatePassCopy("历史", "History", language: language), systemImage: "clock.arrow.circlepath")
                 }
+                .frame(height: GatePassTheme.controlHeightCompact)
             }
             .controlSize(.small)
         }
@@ -124,7 +122,7 @@ struct SystemPreferencesView: View {
 
     private var filters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
+            HStack(spacing: GatePassTheme.spaceS) {
                 filterButton(
                     gatePassCopy("全部", "All", language: language),
                     systemImage: "square.grid.2x2",
@@ -174,12 +172,12 @@ struct SystemPreferencesView: View {
                 Image(systemName: systemImage)
                     .foregroundStyle(active ? Color.accentColor : Color.secondary)
             }
-                .font(.caption.weight(.medium))
-                .padding(.horizontal, 11)
-                .frame(height: 30)
+                .font(GatePassTheme.typeGroupLabel)
+                .padding(.horizontal, GatePassTheme.spaceM)
+                .frame(height: GatePassTheme.controlHeightCompact)
                 .background(active ? Color.accentColor.opacity(0.10) : GatePassTheme.rowBackground, in: Capsule())
                 .overlay {
-                    Capsule().stroke(active ? Color.accentColor.opacity(0.45) : GatePassTheme.border, lineWidth: 1)
+                    Capsule().stroke(active ? Color.accentColor.opacity(0.45) : GatePassTheme.border, lineWidth: GatePassTheme.borderWidth)
                 }
         }
         .buttonStyle(.plain)
@@ -192,9 +190,9 @@ struct SystemPreferencesView: View {
             VStack(spacing: GatePassTheme.spaceS) {
                 ProgressView()
                 Text(gatePassCopy("正在读取系统偏好", "Reading system preferences", language: language))
-                    .font(.callout.weight(.medium))
+                    .font(GatePassTheme.typeControl)
                 Text(gatePassCopy("首次扫描可能需要几秒钟。", "The first scan may take a few seconds.", language: language))
-                    .font(.caption)
+                    .font(GatePassTheme.typeCaption)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -261,10 +259,12 @@ struct SystemPreferencesView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .frame(height: GatePassTheme.controlHeightLarge)
+            .font(GatePassTheme.typeControl)
             .disabled(store.pendingCount == 0 || store.isApplying || store.isScanning)
         }
-        .font(.caption.weight(.medium))
-        .padding(.horizontal, GatePassTheme.pageInset)
+        .font(GatePassTheme.typeGroupLabel)
+        .padding(.horizontal, GatePassTheme.contentBodyPadding)
         .padding(.vertical, GatePassTheme.spaceM)
         .background(.regularMaterial)
     }
@@ -280,23 +280,23 @@ private struct SystemPreferenceRow: View {
     var body: some View {
         HStack(spacing: GatePassTheme.spaceM) {
             Image(systemName: item.definition.component.icon)
-                .font(.callout.weight(.medium))
+                .font(GatePassTheme.typeControl)
                 .foregroundStyle(Color.accentColor)
-                .frame(width: 26)
+                .frame(width: GatePassTheme.spaceXL)
 
             VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                 HStack(spacing: GatePassTheme.spaceS) {
                     Text(item.definition.title(language: language))
-                        .font(.callout.weight(.medium))
+                        .font(GatePassTheme.typeControl)
                     statusBadge
                     if item.definition.restartTarget != .none {
                         Text(item.definition.restartTarget.label(language: language))
-                            .font(.caption.weight(.medium))
+                            .font(GatePassTheme.typeGroupLabel)
                             .foregroundStyle(.secondary)
                     }
                 }
                 Text(item.definition.detailedSummary(language: language))
-                    .font(.caption)
+                    .font(GatePassTheme.typeCaption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
@@ -311,7 +311,7 @@ private struct SystemPreferenceRow: View {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(Color.accentColor)
                 }
-                .font(.caption.weight(.semibold))
+                .font(GatePassTheme.typeGroupLabel)
             }
 
             Toggle("", isOn: Binding(get: { desiredOptimized }, set: onToggle))
@@ -320,6 +320,7 @@ private struct SystemPreferenceRow: View {
                 .controlSize(.small)
                 .disabled(item.status == .unavailable)
         }
+        .frame(minHeight: GatePassTheme.settingsRowMinHeight)
     }
 
     @ViewBuilder
@@ -345,13 +346,13 @@ private struct SystemPreferenceRow: View {
     private func badge(_ text: String, color: Color) -> some View {
         HStack(spacing: GatePassTheme.spaceXS) {
             Image(systemName: "circle.fill")
-                .font(.system(size: 5))
+                .font(.system(size: GatePassTheme.spaceXS))
                 .foregroundStyle(color)
                 .accessibilityHidden(true)
             Text(text)
                 .foregroundStyle(.primary)
         }
-        .font(.caption.weight(.medium))
+        .font(GatePassTheme.typeGroupLabel)
         .padding(.horizontal, GatePassTheme.spaceS)
         .padding(.vertical, GatePassTheme.spaceXS)
         .background(color.opacity(0.10), in: Capsule())
@@ -367,17 +368,17 @@ private struct SystemPreferencesResultView: View {
         VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
             HStack {
                 Image(systemName: result.failedCount == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .font(.system(size: 28))
+                    .font(.system(size: GatePassTheme.controlHeightCompact))
                     .foregroundStyle(result.failedCount == 0 ? Color.green : Color.orange)
                 VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                     Text(gatePassCopy("系统偏好处理完成", "System Preferences completed", language: language))
-                        .font(.title3.bold())
+                        .font(GatePassTheme.typeSectionTitle)
                     Text(gatePassCopy(
                         "已修改 \(result.changedCount) 项，失败 \(result.failedCount) 项。",
                         "Changed \(result.changedCount); failed \(result.failedCount).",
                         language: language
                     ))
-                    .font(.caption)
+                    .font(GatePassTheme.typeCaption)
                     .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -388,10 +389,10 @@ private struct SystemPreferencesResultView: View {
                     Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .foregroundStyle(item.verified ? Color.green : Color.red)
                     Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
-                        .font(.callout)
+                        .font(GatePassTheme.typeBody)
                     Spacer()
                     Text(resultText(item))
-                        .font(.caption)
+                        .font(GatePassTheme.typeCaption)
                         .foregroundStyle(.secondary)
                 }
             }
