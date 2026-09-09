@@ -1,0 +1,66 @@
+name: Updater CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - GatePass/Utilities/GatePassUpdater.swift
+      - GatePass/Settings/UpdateSettingsView.swift
+      - Tests/GatePassUpdaterTests.swift
+      - .github/workflows/updater-ci.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - GatePass/Utilities/GatePassUpdater.swift
+      - GatePass/Settings/UpdateSettingsView.swift
+      - Tests/GatePassUpdaterTests.swift
+      - .github/workflows/updater-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  updater-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-14
+          - macos-15
+          - macos-26
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Compile updater regression suite
+        run: |
+          xcrun swiftc -parse-as-library \
+            Tests/GatePassUpdaterTests.swift \
+            GatePass/Utilities/GatePassUpdater.swift \
+            -o /tmp/gatepass-updater-tests
+
+      - name: Run updater regression suite
+        run: /tmp/gatepass-updater-tests
+
+      - name: Build GatePass for macOS 13 deployment target
+        if: matrix.os != 'macos-14'
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project GatePass.xcodeproj \
+            -target GatePass \
+            -configuration Debug \
+            MACOSX_DEPLOYMENT_TARGET=13.0 \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty
