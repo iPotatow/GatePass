@@ -151,6 +151,10 @@ struct GatePassVersion: Comparable, Equatable {
         components = parts.map { Int($0)! } + Array(repeating: 0, count: max(0, 3 - parts.count))
     }
 
+    static func == (lhs: GatePassVersion, rhs: GatePassVersion) -> Bool {
+        !(lhs < rhs) && !(rhs < lhs)
+    }
+
     static func < (lhs: GatePassVersion, rhs: GatePassVersion) -> Bool {
         let count = max(lhs.components.count, rhs.components.count)
         for index in 0..<count {
@@ -649,7 +653,6 @@ final class GatePassUpdater: ObservableObject {
         }
     }
 
-    // Compatibility bridge for older call sites while explicit check reasons migrate the UI.
     func checkForUpdates(sheet: Bool = false, force: Bool = false, forceUpdate: Bool = false) {
         let reason: GatePassUpdateCheckReason
         if forceUpdate {
@@ -673,7 +676,6 @@ final class GatePassUpdater: ObservableObject {
                 updateError = nil
                 phase = updateAvailable ? .updateAvailable : .idle
             } catch {
-                // Release notes refresh is opportunistic. Keep the previous successful data and avoid surfacing a launch-time error.
                 printOS("Updater: release notes unavailable — \(error.localizedDescription)", category: GatePassLogCategory.updater)
             }
             isChecking = false
