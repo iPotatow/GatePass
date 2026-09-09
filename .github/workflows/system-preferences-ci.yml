@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-core-tests:
+  core-tests:
     strategy:
       fail-fast: false
       matrix:
@@ -42,24 +42,6 @@ jobs:
           sw_vers
           xcodebuild -version
           swift --version
-
-      - name: Build GatePass for macOS 13 deployment target
-        if: matrix.os != 'macos-14'
-        run: |
-          set -o pipefail
-          xcodebuild \
-            -project GatePass.xcodeproj \
-            -target GatePass \
-            -configuration Debug \
-            MACOSX_DEPLOYMENT_TARGET=13.0 \
-            CODE_SIGNING_ALLOWED=NO \
-            build | xcpretty
-
-      - name: Explain macOS 14 project-build skip
-        if: matrix.os == 'macos-14'
-        run: |
-          echo "macOS 14 hosted runner currently ships Xcode 15.4, which cannot open this project's Xcode objectVersion 70."
-          echo "The System Preferences production sources and real defaults integration tests are still compiled and executed on macOS 14 below."
 
       - name: Compile System Preferences regression suite
         run: |

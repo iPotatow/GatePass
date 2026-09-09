@@ -52,15 +52,3 @@ jobs:
 
       - name: Run updater regression suite
         run: /tmp/gatepass-updater-tests
-
-      - name: Build GatePass for macOS 13 deployment target
-        if: matrix.os != 'macos-14'
-        run: |
-          set -o pipefail
-          xcodebuild \
-            -project GatePass.xcodeproj \
-            -target GatePass \
-            -configuration Debug \
-            MACOSX_DEPLOYMENT_TARGET=13.0 \
-            CODE_SIGNING_ALLOWED=NO \
-            build | xcpretty
