@@ -55,40 +55,43 @@ private struct GatePassNoUpdateView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: GatePassTheme.spaceL) {
             Image(systemName: updater.updateError == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(updater.updateError == nil ? .green : .orange)
+                .foregroundStyle(updater.updateError == nil ? GatePassTheme.semanticSuccess : GatePassTheme.semanticWarning)
 
-            VStack(spacing: 5) {
+            VStack(spacing: GatePassTheme.spaceXS) {
                 if let updateError = updater.updateError {
                     Text(gatePassCopy("更新检查失败", "Update check failed", language: language))
-                        .font(.title2.weight(.semibold))
+                        .gatePassTypography(GatePassTheme.typographySectionTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
                     Text(updateError)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .gatePassTypography(GatePassTheme.typographyBody)
+                        .foregroundStyle(GatePassTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .textSelection(.enabled)
                 } else {
                     Text(gatePassCopy("已是最新版本", "You're up to date", language: language))
-                        .font(.title2.weight(.semibold))
+                        .gatePassTypography(GatePassTheme.typographySectionTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
                     Text(gatePassCopy(
                         "GatePass \(updater.currentVersion) 已经是当前更新源上的最新版本。",
                         "GatePass \(updater.currentVersion) is already the latest release from the selected update source.",
                         language: language
                     ))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .gatePassTypography(GatePassTheme.typographyBody)
+                        .foregroundStyle(GatePassTheme.textSecondary)
                 }
             }
 
             Button(gatePassCopy("关闭", "Close", language: language)) {
                 dismiss()
             }
+            .font(GatePassTheme.typeControl)
             .keyboardShortcut(.defaultAction)
         }
         .frame(width: 500, height: 200)
-        .padding(24)
+        .padding(GatePassTheme.spaceXL)
     }
 }
 
@@ -134,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 continue
             }
 
-            handleOpenedApp(url: fileURL, appState: AppState.shared)
+            handleOpenedApp(url: fileURL, appState: appState)
         }
     }
 }
