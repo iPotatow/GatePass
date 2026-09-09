@@ -20,7 +20,9 @@ struct Dashboard: View {
         VStack(spacing: 0) {
             header
 
-            Divider()
+            Rectangle()
+                .fill(GatePassTheme.divider)
+                .frame(height: GatePassTheme.dividerWidth)
 
             VStack(spacing: GatePassTheme.sectionSpacing) {
                 ViewThatFits(in: .horizontal) {
@@ -67,7 +69,7 @@ struct Dashboard: View {
             appState.refreshRecentApps()
         }
         .animation(
-            reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9),
+            reduceMotion ? nil : GatePassTheme.motionStandard,
             value: isDropTargeted
         )
     }
@@ -93,7 +95,7 @@ struct Dashboard: View {
                         ? gatePassCopy("Gatekeeper 已启用", "Gatekeeper on", language: language)
                         : gatePassCopy("Gatekeeper 已关闭", "Gatekeeper off", language: language),
                     systemImage: appState.isGatekeeperAssessmentEnabled ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
-                    color: appState.isGatekeeperAssessmentEnabled ? .green : .orange
+                    color: appState.isGatekeeperAssessmentEnabled ? GatePassTheme.semanticSuccess : GatePassTheme.semanticWarning
                 )
             }
         }
@@ -103,11 +105,11 @@ struct Dashboard: View {
         GatePassPanel(padding: 0) {
             ZStack {
                 RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
-                    .fill(Color.accentColor.opacity(isDropTargeted ? 0.15 : 0.08))
+                    .fill(GatePassTheme.accent.opacity(isDropTargeted ? 0.15 : 0.08))
 
                 RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
                     .strokeBorder(
-                        Color.accentColor.opacity(isDropTargeted ? 0.75 : 0.28),
+                        GatePassTheme.accent.opacity(isDropTargeted ? 0.75 : 0.28),
                         style: StrokeStyle(
                             lineWidth: isDropTargeted ? 2 : 1,
                             dash: isDropTargeted ? [] : [8, 4]
@@ -117,10 +119,10 @@ struct Dashboard: View {
                 VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
                     ZStack {
                         RoundedRectangle(cornerRadius: GatePassTheme.panelRadius, style: .continuous)
-                            .fill(Color.accentColor)
+                            .fill(GatePassTheme.accent)
                         Image(systemName: appState.doneQuarantine ? "checkmark" : "lock.open.fill")
                             .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(GatePassTheme.onAccent)
                     }
                     .frame(width: 48, height: 48)
                     .accessibilityHidden(true)
@@ -129,14 +131,15 @@ struct Dashboard: View {
                         Text(isDropTargeted
                              ? gatePassCopy("松开即可处理", "Release to process", language: language)
                              : gatePassCopy("解除 App 隔离", "Remove App quarantine", language: language))
-                            .font(GatePassTheme.typeSectionTitle)
+                            .gatePassTypography(GatePassTheme.typographySectionTitle)
+                            .foregroundStyle(GatePassTheme.textPrimary)
                         Text(gatePassCopy(
                             "拖入或选择你确认来源可信的 .app。GatePass 只移除下载隔离属性，不会更改 Gatekeeper 设置。",
                             "Drop or choose an .app you trust. GatePass only removes its quarantine attribute and does not change Gatekeeper settings.",
                             language: language
                         ))
-                            .font(GatePassTheme.typeBody)
-                            .foregroundStyle(.secondary)
+                            .gatePassTypography(GatePassTheme.typographyBody)
+                            .foregroundStyle(GatePassTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -152,13 +155,13 @@ struct Dashboard: View {
                     .controlSize(.large)
                     .frame(height: GatePassTheme.controlHeightLarge)
                     .font(GatePassTheme.typeControl)
-                    .tint(Color.accentColor)
+                    .tint(GatePassTheme.accent)
                     .disabled(appState.isLoading)
                     .keyboardShortcut("o", modifiers: .command)
 
                     Label(gatePassCopy("支持一次选择多个 App", "You can choose multiple apps", language: language), systemImage: "checkmark.shield")
                         .font(GatePassTheme.typeCaption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GatePassTheme.textSecondary)
                 }
                 .padding(GatePassTheme.contentBodyPadding)
             }
@@ -179,10 +182,11 @@ struct Dashboard: View {
                 HStack(alignment: .center, spacing: GatePassTheme.spaceM) {
                     VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                         Text(gatePassCopy("最近安装", "Recently installed", language: language))
-                            .font(GatePassTheme.typeSectionTitle)
+                            .gatePassTypography(GatePassTheme.typographySectionTitle)
+                            .foregroundStyle(GatePassTheme.textPrimary)
                         Text(gatePassCopy("过去 7 天 · 可拖入左侧，也可直接处理", "Last 7 days · drag left or process directly", language: language))
-                            .font(GatePassTheme.typeCaption)
-                            .foregroundStyle(.secondary)
+                            .gatePassTypography(GatePassTheme.typographyCaption)
+                            .foregroundStyle(GatePassTheme.textSecondary)
                     }
 
                     Spacer()
@@ -205,7 +209,9 @@ struct Dashboard: View {
                     .accessibilityLabel(gatePassCopy("刷新最近安装的 App", "Refresh recently installed apps", language: language))
                 }
 
-                Divider()
+                Rectangle()
+                    .fill(GatePassTheme.divider)
+                    .frame(height: GatePassTheme.dividerWidth)
 
                 Group {
                     if appState.isScanningRecentApps && appState.recentApps.isEmpty {
@@ -255,8 +261,8 @@ struct Dashboard: View {
             }
 
             Text(statusText)
-                .font(GatePassTheme.typeCaption)
-                .foregroundStyle(.secondary)
+                .gatePassTypography(GatePassTheme.typographyCaption)
+                .foregroundStyle(GatePassTheme.textSecondary)
                 .lineLimit(2)
 
             Spacer()
@@ -279,8 +285,8 @@ struct Dashboard: View {
     }
 
     private var statusColor: Color {
-        if appState.doneQuarantine { return .green }
-        return .secondary
+        if appState.doneQuarantine { return GatePassTheme.semanticSuccess }
+        return GatePassTheme.textSecondary
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {
@@ -342,15 +348,16 @@ private struct RecentAppRow: View {
 
             VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                 Text(app.name)
-                    .font(GatePassTheme.typeControl)
+                    .gatePassTypography(GatePassTheme.typographyControl)
+                    .foregroundStyle(GatePassTheme.textPrimary)
                     .lineLimit(1)
                 Text(gatePassCopy(
                     "安装于 \(app.installedAt.formatted(date: .abbreviated, time: .omitted))",
                     "Installed \(app.installedAt.formatted(date: .abbreviated, time: .omitted))",
                     language: language
                 ))
-                    .font(GatePassTheme.typeCaption)
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyCaption)
+                    .foregroundStyle(GatePassTheme.textSecondary)
             }
 
             Spacer(minLength: GatePassTheme.spaceM)
@@ -397,15 +404,16 @@ private struct ContentUnavailableViewCompat: View {
             } else {
                 Image(systemName: icon)
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GatePassTheme.textSecondary)
                     .accessibilityHidden(true)
             }
 
             Text(title)
-                .font(GatePassTheme.typeControl)
+                .gatePassTypography(GatePassTheme.typographyControl)
+                .foregroundStyle(GatePassTheme.textPrimary)
             Text(message)
-                .font(GatePassTheme.typeCaption)
-                .foregroundStyle(.secondary)
+                .gatePassTypography(GatePassTheme.typographyCaption)
+                .foregroundStyle(GatePassTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)
         }
