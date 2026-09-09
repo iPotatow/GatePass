@@ -137,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 continue
             }
 
-            handleOpenedApp(url: fileURL, appState: appState)
+            handleOpenedApp(url: fileURL, appState: AppState.shared)
         }
     }
 }
