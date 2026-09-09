@@ -14,19 +14,15 @@ enum GatePassUpdateFrequency: String, CaseIterable, Identifiable {
 
     var interval: TimeInterval? {
         switch self {
-        case .none:
-            return nil
-        case .daily:
-            return 86_400
-        case .weekly:
-            return 604_800
-        case .monthly:
-            return 2_592_000
+        case .none: return nil
+        case .daily: return 86_400
+        case .weekly: return 604_800
+        case .monthly: return 2_592_000
         }
     }
 }
 
-struct GatePassAsset: Codable {
+struct GatePassAsset: Codable, Equatable {
     let name: String
     let url: String
     let browserDownloadURL: String
@@ -38,12 +34,14 @@ struct GatePassAsset: Codable {
     }
 }
 
-struct GatePassRelease: Codable, Identifiable {
+struct GatePassRelease: Codable, Identifiable, Equatable {
     let id: Int
     let tagName: String
     let name: String
     let body: String
     let assets: [GatePassAsset]
+    let draft: Bool
+    let prerelease: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -51,6 +49,26 @@ struct GatePassRelease: Codable, Identifiable {
         case name
         case body
         case assets
+        case draft
+        case prerelease
+    }
+
+    init(
+        id: Int,
+        tagName: String,
+        name: String? = nil,
+        body: String = "",
+        assets: [GatePassAsset] = [],
+        draft: Bool = false,
+        prerelease: Bool = false
+    ) {
+        self.id = id
+        self.tagName = tagName
+        self.name = name ?? tagName
+        self.body = body
+        self.assets = assets
+        self.draft = draft
+        self.prerelease = prerelease
     }
 
     init(from decoder: Decoder) throws {
@@ -60,62 +78,67 @@ struct GatePassRelease: Codable, Identifiable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? tagName
         body = try container.decodeIfPresent(String.self, forKey: .body) ?? ""
         assets = try container.decodeIfPresent([GatePassAsset].self, forKey: .assets) ?? []
+        draft = try container.decodeIfPresent(Bool.self, forKey: .draft) ?? false
+        prerelease = try container.decodeIfPresent(Bool.self, forKey: .prerelease) ?? false
     }
 
-    func modifiedBody(owner: String, repo: String) -> NSAttributedString? {
-        let cleanedBody = body.replacingOccurrences(
+    var releaseNotes: AttributedString? {
+        let cleaned = Self.cleanedReleaseBody(body)
+        guard !cleaned.isEmpty else { return nil }
+
+        if let markdown = try? AttributedString(
+            markdown: cleaned,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .full)
+        ) {
+            return markdown
+        }
+        return AttributedString(cleaned)
+    }
+
+    static func stableSorted(_ releases: [GatePassRelease]) -> [GatePassRelease] {
+        releases
+            .filter { !$0.draft && !$0.prerelease && GatePassVersion($0.tagName) != nil }
+            .sorted { lhs, rhs in
+                guard let left = GatePassVersion(lhs.tagName), let right = GatePassVersion(rhs.tagName) else {
+                    return lhs.tagName > rhs.tagName
+                }
+                return left > right
+            }
+    }
+
+    static func cleanedReleaseBody(_ body: String) -> String {
+        let withoutImages = body.replacingOccurrences(
             of: #"!\[.*?\]\((.*?)\)"#,
             with: "",
             options: .regularExpression
         )
-        let result = NSMutableAttributedString()
 
-        for rawLine in cleanedBody.components(separatedBy: .newlines) {
-            guard !rawLine.isEmpty else { continue }
+        var seenNonEmptyLines = Set<String>()
+        var result: [String] = []
+        var previousWasBlank = false
 
-            let line = rawLine
-                .replacingOccurrences(of: "- [x]", with: "•")
-                .replacingOccurrences(of: "- [ ]", with: "•")
-
-            if line.hasPrefix("#") {
-                let text = line.replacingOccurrences(of: #"^#+\s*"#, with: "", options: .regularExpression)
-                let header = NSMutableAttributedString(string: text)
-                header.addAttribute(
-                    .font,
-                    value: NSFont.systemFont(ofSize: 17, weight: .bold),
-                    range: NSRange(location: 0, length: header.length)
-                )
-                result.append(header)
-            } else {
-                let attributedLine = NSMutableAttributedString(string: line)
-                let pattern = #"#(\d+)"#
-                if let regex = try? NSRegularExpression(pattern: pattern) {
-                    let range = NSRange(line.startIndex..., in: line)
-                    for match in regex.matches(in: line, options: [], range: range).reversed() {
-                        guard let issueRange = Range(match.range(at: 1), in: line) else { continue }
-                        let issue = String(line[issueRange])
-                        let fullIssue = "#\(issue)"
-                        let url = "https://github.com/\(owner)/\(repo)/issues/\(issue)"
-                        let linkRange = (attributedLine.string as NSString).range(of: fullIssue)
-                        guard linkRange.location != NSNotFound else { continue }
-                        attributedLine.addAttribute(.link, value: url, range: linkRange)
-                        attributedLine.addAttribute(
-                            .underlineStyle,
-                            value: NSUnderlineStyle.single.rawValue,
-                            range: linkRange
-                        )
-                    }
+        for rawLine in withoutImages.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty {
+                if !result.isEmpty && !previousWasBlank {
+                    result.append("")
                 }
-                result.append(attributedLine)
+                previousWasBlank = true
+                continue
             }
-            result.append(NSAttributedString(string: "\n"))
+
+            previousWasBlank = false
+            if seenNonEmptyLines.insert(line).inserted {
+                result.append(line)
+            }
         }
 
-        return result.length == 0 ? nil : result
+        while result.last?.isEmpty == true { result.removeLast() }
+        return result.joined(separator: "\n")
     }
 }
 
-struct GatePassVersion: Comparable {
+struct GatePassVersion: Comparable, Equatable {
     let components: [Int]
 
     init?(_ rawValue: String) {
@@ -129,7 +152,13 @@ struct GatePassVersion: Comparable {
     }
 
     static func < (lhs: GatePassVersion, rhs: GatePassVersion) -> Bool {
-        lhs.components.lexicographicallyPrecedes(rhs.components)
+        let count = max(lhs.components.count, rhs.components.count)
+        for index in 0..<count {
+            let left = index < lhs.components.count ? lhs.components[index] : 0
+            let right = index < rhs.components.count ? rhs.components[index] : 0
+            if left != right { return left < right }
+        }
+        return false
     }
 }
 
@@ -143,40 +172,28 @@ enum GatePassUpdateSource: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .github:
-            return "GitHub"
-        case .ghProxy, .legacyMirror:
-            return "gh-proxy.com"
-        case .ghproxyNet:
-            return "ghproxy.net"
+        case .github: return "GitHub"
+        case .ghProxy, .legacyMirror: return "gh-proxy.com"
+        case .ghproxyNet: return "ghproxy.net"
         }
     }
 
     var proxyPrefix: String? {
         switch self {
-        case .github:
-            return nil
-        case .ghProxy:
-            return "https://gh-proxy.com/"
-        case .ghproxyNet:
-            return "https://ghproxy.net/"
-        case .legacyMirror:
-            return "https://gh-proxy.com/"
+        case .github: return nil
+        case .ghProxy: return "https://gh-proxy.com/"
+        case .ghproxyNet: return "https://ghproxy.net/"
+        case .legacyMirror: return "https://gh-proxy.com/"
         }
     }
 }
 
 struct GatePassUpdateEndpoint {
-    static func resolve(
-        originalURL: URL,
-        source: GatePassUpdateSource
-    ) -> URL? {
+    static func resolve(originalURL: URL, source: GatePassUpdateSource) -> URL? {
         guard let proxyPrefix = source.proxyPrefix else { return originalURL }
         let resolvedString = "\(proxyPrefix)\(originalURL.absoluteString)"
-
         guard let resolvedURL = URL(string: resolvedString),
-              let scheme = resolvedURL.scheme?.lowercased(),
-              scheme == "https",
+              resolvedURL.scheme?.lowercased() == "https",
               resolvedURL.host != nil else {
             return nil
         }
@@ -184,6 +201,50 @@ struct GatePassUpdateEndpoint {
     }
 }
 
+struct GatePassUpdateAssetSelector {
+    static func select(
+        from assets: [GatePassAsset],
+        appName: String,
+        architecture: String
+    ) -> GatePassAsset? {
+        let zipAssets = assets.filter { $0.name.lowercased().hasSuffix(".zip") }
+        return zipAssets.first(where: { $0.name == "\(appName)-\(architecture).zip" })
+            ?? zipAssets.first(where: { $0.name == "\(appName).zip" })
+            ?? zipAssets.first
+    }
+}
+
+struct GatePassChecksumManifest {
+    static func expectedSHA256(in text: String, for assetName: String) -> String? {
+        text.split(whereSeparator: \.isNewline).compactMap { line -> String? in
+            let fields = line.split(maxSplits: 1, whereSeparator: \.isWhitespace)
+            guard fields.count == 2 else { return nil }
+            let filename = fields[1].trimmingCharacters(in: CharacterSet(charactersIn: " *"))
+            guard filename == assetName else { return nil }
+            let hash = String(fields[0]).lowercased()
+            guard hash.count == 64, hash.allSatisfy({ $0.isHexDigit }) else { return nil }
+            return hash
+        }.first
+    }
+}
+
+enum GatePassUpdateCheckReason: Equatable {
+    case background
+    case manual
+    case reinstallCurrent
+}
+
+enum GatePassUpdatePhase: Equatable {
+    case idle
+    case checking
+    case upToDate
+    case updateAvailable
+    case downloading
+    case verifying
+    case installing
+    case restarting
+    case failed
+}
 
 struct GatePassPendingInstallation: Codable {
     let destinationPath: String
@@ -416,8 +477,7 @@ struct GatePassUpdateProcessRunner {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    let output = try runSynchronously(executable: executable, arguments: arguments)
-                    continuation.resume(returning: output)
+                    continuation.resume(returning: try runSynchronously(executable: executable, arguments: arguments))
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -468,19 +528,16 @@ final class GatePassUpdater: ObservableObject {
         }
     }
     @Published var updateSource: GatePassUpdateSource {
-        didSet {
-            defaults.set(updateSource.rawValue, forKey: Keys.updateSource)
-        }
+        didSet { defaults.set(updateSource.rawValue, forKey: Keys.updateSource) }
     }
     @Published var nextUpdateDate: Date {
-        didSet {
-            defaults.set(nextUpdateDate.timeIntervalSinceReferenceDate, forKey: Keys.nextCheckDate)
-        }
+        didSet { defaults.set(nextUpdateDate.timeIntervalSinceReferenceDate, forKey: Keys.nextCheckDate) }
     }
     @Published private(set) var isChecking = false
     @Published private(set) var isUpdating = false
     @Published private(set) var updateError: String?
     @Published private(set) var forceUpdateRequested = false
+    @Published private(set) var phase: GatePassUpdatePhase = .idle
 
     let owner: String
     let repo: String
@@ -507,11 +564,14 @@ final class GatePassUpdater: ObservableObject {
         return "v\(normalized)"
     }
 
-    var hasNewerGatePassRelease: Bool {
-        guard let installed = GatePassVersion(currentVersion) else { return false }
-        return releases
-            .compactMap { GatePassVersion($0.tagName) }
-            .contains(where: { $0 > installed })
+    var hasNewerGatePassRelease: Bool { latestNewerRelease != nil }
+
+    private var latestNewerRelease: GatePassRelease? {
+        guard let installed = GatePassVersion(currentVersion) else { return nil }
+        return releases.first { release in
+            guard let version = GatePassVersion(release.tagName), version > installed else { return false }
+            return selectUpdateAsset(from: release.assets) != nil && checksumAsset(in: release) != nil
+        }
     }
 
     init(owner: String, repo: String) {
@@ -533,9 +593,7 @@ final class GatePassUpdater: ObservableObject {
            let source = GatePassUpdateSource(rawValue: raw) {
             if source == .legacyMirror {
                 let legacyMirrorURL = defaults.string(forKey: "gatepass.updater.mirrorURL")?.lowercased() ?? ""
-                self.updateSource = legacyMirrorURL.localizedStandardContains("ghproxy.net")
-                    ? .ghproxyNet
-                    : .ghProxy
+                self.updateSource = legacyMirrorURL.localizedStandardContains("ghproxy.net") ? .ghproxyNet : .ghProxy
                 defaults.set(self.updateSource.rawValue, forKey: Keys.updateSource)
             } else {
                 self.updateSource = source
@@ -553,44 +611,55 @@ final class GatePassUpdater: ObservableObject {
         }
 
         recordPendingInstallationState()
-
-        Task { [weak self] in
-            self?.checkAndUpdateIfNeeded()
-        }
+        Task { [weak self] in self?.checkAndUpdateIfNeeded() }
     }
 
-    func checkForUpdates(sheet: Bool = false, force: Bool = false, forceUpdate: Bool = false) {
+    func checkForUpdates(reason: GatePassUpdateCheckReason) {
         guard !isChecking, !isUpdating else { return }
-        forceUpdateRequested = forceUpdate
         isChecking = true
+        phase = .checking
+        updateError = nil
+        forceUpdateRequested = reason == .reinstallCurrent
 
         Task { [weak self] in
             guard let self else { return }
             do {
-                let fetched = try await fetchReleases()
-                releases = fetched
+                releases = try await fetchReleases()
                 updateAvailable = hasNewerGatePassRelease
-                updateError = nil
-                if sheet {
-                    self.sheet = true
+
+                switch reason {
+                case .background:
+                    phase = updateAvailable ? .updateAvailable : .idle
+                case .manual:
+                    phase = updateAvailable ? .updateAvailable : .upToDate
+                    sheet = true
+                case .reinstallCurrent:
+                    phase = updateAvailable ? .updateAvailable : .upToDate
+                    sheet = true
                 }
-                if force || forceUpdate {
-                    self.sheet = true
-                }
-                if !forceUpdate {
-                    setNextUpdateDate()
-                }
+
+                if reason != .reinstallCurrent { setNextUpdateDate() }
             } catch {
-                releases = []
-                updateAvailable = false
                 updateError = error.localizedDescription
-                if sheet {
-                    self.sheet = true
-                }
+                phase = .failed
+                if reason != .background { sheet = true }
                 printOS("Updater: \(error.localizedDescription)", category: GatePassLogCategory.updater)
             }
             isChecking = false
         }
+    }
+
+    // Compatibility bridge for older call sites while explicit check reasons migrate the UI.
+    func checkForUpdates(sheet: Bool = false, force: Bool = false, forceUpdate: Bool = false) {
+        let reason: GatePassUpdateCheckReason
+        if forceUpdate {
+            reason = .reinstallCurrent
+        } else if sheet || force {
+            reason = .manual
+        } else {
+            reason = .background
+        }
+        checkForUpdates(reason: reason)
     }
 
     func checkReleaseNotes() {
@@ -602,10 +671,9 @@ final class GatePassUpdater: ObservableObject {
                 releases = try await fetchReleases()
                 updateAvailable = hasNewerGatePassRelease
                 updateError = nil
+                phase = updateAvailable ? .updateAvailable : .idle
             } catch {
-                releases = []
-                updateAvailable = false
-                updateError = error.localizedDescription
+                // Release notes refresh is opportunistic. Keep the previous successful data and avoid surfacing a launch-time error.
                 printOS("Updater: release notes unavailable — \(error.localizedDescription)", category: GatePassLogCategory.updater)
             }
             isChecking = false
@@ -615,7 +683,7 @@ final class GatePassUpdater: ObservableObject {
     func checkAndUpdateIfNeeded() {
         guard updateFrequency != .none else { return }
         if Date() >= nextUpdateDate {
-            checkForUpdates()
+            checkForUpdates(reason: .background)
         } else {
             checkReleaseNotes()
         }
@@ -626,16 +694,15 @@ final class GatePassUpdater: ObservableObject {
             nextUpdateDate = .distantFuture
             return
         }
-
-        let now = Date()
-        nextUpdateDate = Calendar.current.date(byAdding: .second, value: Int(interval), to: now) ?? now
+        nextUpdateDate = Date().addingTimeInterval(interval)
     }
 
     func downloadUpdate() {
         guard !isUpdating, let release = installableRelease else { return }
         isUpdating = true
         updateError = nil
-        progressBar = ("Preparing update…", 0.05)
+        phase = .downloading
+        progressBar = ("Downloading update…", 0.10)
 
         Task { [weak self] in
             guard let self else { return }
@@ -643,8 +710,7 @@ final class GatePassUpdater: ObservableObject {
                 try await stageAndLaunchUpdate(release: release)
             } catch {
                 isUpdating = false
-                forceUpdateRequested = false
-                updateAvailable = false
+                phase = .failed
                 updateError = error.localizedDescription
                 progressBar = ("Update failed", 0)
                 printOS("Updater: \(error.localizedDescription)", category: GatePassLogCategory.updater)
@@ -658,19 +724,20 @@ final class GatePassUpdater: ObservableObject {
     }
 
     private var installableRelease: GatePassRelease? {
-        guard let current = GatePassVersion(currentVersion) else { return releases.first }
-        return releases.first(where: { release in
-            guard let version = GatePassVersion(release.tagName) else { return false }
-            return version >= current
-        }) ?? releases.first
+        if forceUpdateRequested,
+           let current = GatePassVersion(currentVersion),
+           let exact = releases.first(where: { GatePassVersion($0.tagName) == current }),
+           selectUpdateAsset(from: exact.assets) != nil,
+           checksumAsset(in: exact) != nil {
+            return exact
+        }
+        return latestNewerRelease
     }
 
     private func fetchReleases() async throws -> [GatePassRelease] {
-        guard let githubURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases") else {
+        guard let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases?per_page=30") else {
             throw GatePassUpdateError.invalidURL
         }
-        let url = try updateURL(for: githubURL)
-
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
@@ -681,26 +748,17 @@ final class GatePassUpdater: ObservableObject {
         guard http.statusCode == 200 else { throw GatePassUpdateError.httpStatus(http.statusCode) }
 
         let decoded = try JSONDecoder().decode([GatePassRelease].self, from: data)
-        return Array(decoded.sorted { lhs, rhs in
-            guard let left = GatePassVersion(lhs.tagName), let right = GatePassVersion(rhs.tagName) else {
-                return lhs.tagName > rhs.tagName
-            }
-            return left > right
-        }.prefix(3))
+        return Array(GatePassRelease.stableSorted(decoded).prefix(10))
     }
 
     private func stageAndLaunchUpdate(release: GatePassRelease) async throws {
-        guard let asset = selectUpdateAsset(from: release.assets) else {
-            throw GatePassUpdateError.noDownload
-        }
-        guard let originalDownloadURL = URL(string: asset.browserDownloadURL.isEmpty ? asset.url : asset.browserDownloadURL) else {
-            throw GatePassUpdateError.invalidURL
-        }
-        let downloadURL = try updateURL(for: originalDownloadURL)
+        guard let asset = selectUpdateAsset(from: release.assets) else { throw GatePassUpdateError.noDownload }
+        guard let originalDownloadURL = assetDownloadURL(asset) else { throw GatePassUpdateError.invalidURL }
 
         let destination = Bundle.main.bundleURL
-        guard FileManager.default.isWritableFile(atPath: destination.deletingLastPathComponent().path) else {
-            throw GatePassUpdateError.installLocationNotWritable(destination.deletingLastPathComponent().path)
+        let parent = destination.deletingLastPathComponent()
+        guard FileManager.default.isWritableFile(atPath: parent.path) else {
+            throw GatePassUpdateError.installLocationNotWritable(parent.path)
         }
 
         let fileManager = FileManager.default
@@ -715,32 +773,32 @@ final class GatePassUpdater: ObservableObject {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: updateRoot, withIntermediateDirectories: true)
         var installerLaunched = false
-        defer {
-            if !installerLaunched {
-                try? fileManager.removeItem(at: updateRoot)
-            }
-        }
+        defer { if !installerLaunched { try? fileManager.removeItem(at: updateRoot) } }
 
-        progressBar = ("Downloading update…", 0.2)
-        var request = URLRequest(url: downloadURL)
-        request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw GatePassUpdateError.downloadFailed
-        }
-
+        progressBar = ("Downloading update…", 0.20)
+        phase = .downloading
+        let archiveData = try await downloadAssetData(originalURL: originalDownloadURL, accept: "application/octet-stream")
         let archiveURL = updateRoot.appendingPathComponent(asset.name)
-        try data.write(to: archiveURL, options: .atomic)
-        progressBar = ("Verifying update…", 0.35)
+        try archiveData.write(to: archiveURL, options: .atomic)
+
+        progressBar = ("Verifying update…", 0.40)
+        phase = .verifying
         try await verifyChecksum(archiveURL: archiveURL, asset: asset, release: release)
 
         let extractionURL = updateRoot.appendingPathComponent("extracted", isDirectory: true)
         try fileManager.createDirectory(at: extractionURL, withIntermediateDirectories: true)
-        _ = try await GatePassUpdateProcessRunner.run(executable: "/usr/bin/ditto", arguments: ["-xk", archiveURL.path, extractionURL.path])
+        _ = try await GatePassUpdateProcessRunner.run(
+            executable: "/usr/bin/ditto",
+            arguments: ["-xk", archiveURL.path, extractionURL.path]
+        )
 
-        let appURLs = (fileManager.enumerator(at: extractionURL, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? [])
-            .filter { $0.pathExtension == "app" }
+        let appURLs = try fileManager.contentsOfDirectory(
+            at: extractionURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ).filter { $0.pathExtension.lowercased() == "app" }
         guard appURLs.count == 1 else { throw GatePassUpdateError.invalidArchive }
+
         let stagedApp = appURLs[0]
         guard let currentBundleIdentifier = Bundle.main.bundleIdentifier,
               let stagedBundle = Bundle(url: stagedApp),
@@ -751,11 +809,9 @@ final class GatePassUpdater: ObservableObject {
               stagedVersion == releaseVersion else {
             throw GatePassUpdateError.invalidArchive
         }
-        // Release ZIPs are built without a Developer ID signature. Their integrity is
-        // established by SHA256SUMS above; requiring a local Gatekeeper assessment
-        // here would reject every valid release before installation can begin.
-        progressBar = ("Ready to install…", 0.65)
 
+        progressBar = ("Installing update…", 0.70)
+        phase = .installing
         try launchInstaller(
             stagedApp: stagedApp,
             updateRoot: updateRoot,
@@ -764,63 +820,90 @@ final class GatePassUpdater: ObservableObject {
         )
         installerLaunched = true
         progressBar = ("Restarting GatePass…", 1)
+        phase = .restarting
         isUpdating = false
         NSApp.terminate(nil)
     }
 
     private func verifyChecksum(archiveURL: URL, asset: GatePassAsset, release: GatePassRelease) async throws {
-        guard let checksumAsset = release.assets.first(where: {
-            let name = $0.name.lowercased()
-            return name == "sha256sums" || name == "sha256sums.txt" || name.contains("checksums")
-        }) else {
+        guard let checksumAsset = checksumAsset(in: release),
+              let originalURL = assetDownloadURL(checksumAsset) else {
             throw GatePassUpdateError.missingChecksum
         }
-        guard let originalURL = URL(string: checksumAsset.browserDownloadURL.isEmpty ? checksumAsset.url : checksumAsset.browserDownloadURL) else {
-            throw GatePassUpdateError.invalidURL
-        }
-        let url = try updateURL(for: originalURL)
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let text = String(data: data, encoding: .utf8) else {
-            throw GatePassUpdateError.checksumUnavailable
-        }
 
-        let expected = text.split(whereSeparator: \.isNewline).compactMap { line -> String? in
-            let fields = line.split(maxSplits: 1, whereSeparator: \.isWhitespace)
-            guard fields.count == 2 else { return nil }
-            let filename = fields[1].trimmingCharacters(in: CharacterSet(charactersIn: " *"))
-            return filename == asset.name ? String(fields[0]).lowercased() : nil
-        }.first
-        guard let expected else { throw GatePassUpdateError.checksumMissingForAsset }
+        let data = try await downloadAssetData(originalURL: originalURL, accept: "text/plain, application/octet-stream")
+        guard let text = String(data: data, encoding: .utf8) else { throw GatePassUpdateError.checksumUnavailable }
+        guard let expected = GatePassChecksumManifest.expectedSHA256(in: text, for: asset.name) else {
+            throw GatePassUpdateError.checksumMissingForAsset
+        }
 
         let digest = SHA256.hash(data: try Data(contentsOf: archiveURL))
         let actual = digest.map { String(format: "%02x", $0) }.joined()
         guard actual == expected else { throw GatePassUpdateError.checksumMismatch }
     }
 
-    private func updateURL(for originalURL: URL) throws -> URL {
-        guard let resolvedURL = GatePassUpdateEndpoint.resolve(
-            originalURL: originalURL,
-            source: updateSource
-        ) else {
-            throw GatePassUpdateError.invalidURL
+    private func downloadAssetData(originalURL: URL, accept: String) async throws -> Data {
+        let candidateURLs: [URL]
+        if updateSource == .github {
+            candidateURLs = [originalURL]
+        } else if let mirrored = GatePassUpdateEndpoint.resolve(originalURL: originalURL, source: updateSource) {
+            candidateURLs = [mirrored, originalURL]
+        } else {
+            candidateURLs = [originalURL]
         }
-        return resolvedURL
+
+        var lastStatus: Int?
+        var lastError: Error?
+
+        for (index, url) in candidateURLs.enumerated() {
+            do {
+                var request = URLRequest(url: url)
+                request.setValue(accept, forHTTPHeaderField: "Accept")
+                request.setValue("GatePass/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse else { throw GatePassUpdateError.invalidResponse }
+                guard http.statusCode == 200 else {
+                    lastStatus = http.statusCode
+                    if index + 1 < candidateURLs.count { continue }
+                    throw GatePassUpdateError.httpStatus(http.statusCode)
+                }
+                return data
+            } catch {
+                lastError = error
+                if index + 1 < candidateURLs.count {
+                    printOS(
+                        "Updater: \(updateSource.displayName) download failed, retrying via GitHub — \(error.localizedDescription)",
+                        category: GatePassLogCategory.updater
+                    )
+                    continue
+                }
+            }
+        }
+
+        if let lastStatus { throw GatePassUpdateError.httpStatus(lastStatus) }
+        if let lastError { throw lastError }
+        throw GatePassUpdateError.downloadFailed
     }
 
     private func selectUpdateAsset(from assets: [GatePassAsset]) -> GatePassAsset? {
-        let arch = {
 #if arch(arm64)
-            return "arm"
+        let architecture = "arm"
 #else
-            return "intel"
+        let architecture = "intel"
 #endif
-        }()
-        let zipAssets = assets.filter { $0.name.lowercased().hasSuffix(".zip") }
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "GatePass"
-        return zipAssets.first(where: { $0.name == "\(appName)-\(arch).zip" })
-            ?? zipAssets.first(where: { $0.name == "\(appName).zip" })
-            ?? zipAssets.first
+        return GatePassUpdateAssetSelector.select(from: assets, appName: appName, architecture: architecture)
+    }
+
+    private func checksumAsset(in release: GatePassRelease) -> GatePassAsset? {
+        release.assets.first { asset in
+            let name = asset.name.lowercased()
+            return name == "sha256sums" || name == "sha256sums.txt" || name.contains("checksums")
+        }
+    }
+
+    private func assetDownloadURL(_ asset: GatePassAsset) -> URL? {
+        URL(string: asset.browserDownloadURL.isEmpty ? asset.url : asset.browserDownloadURL)
     }
 
     private func launchInstaller(
@@ -838,8 +921,7 @@ final class GatePassUpdater: ObservableObject {
             expectedVersion: expectedVersion
         )
         let recordURL = updateRoot.appendingPathComponent("install-record.json")
-        let recordData = try JSONEncoder().encode(record)
-        try recordData.write(to: recordURL, options: .atomic)
+        try JSONEncoder().encode(record).write(to: recordURL, options: .atomic)
 
         let scriptURL = updateRoot.appendingPathComponent("install-update.zsh")
         let script = GatePassUpdateInstaller.installScript(
@@ -879,11 +961,13 @@ final class GatePassUpdater: ObservableObject {
             fileManager: fileManager
         ) {
             updateError = message
+            phase = .failed
         } else if let message = GatePassUpdateInstaller.pendingFailureMessage(
             in: updatesDirectory,
             fileManager: fileManager
         ) {
             updateError = message
+            phase = .failed
         }
     }
 
@@ -901,11 +985,10 @@ final class GatePassUpdater: ObservableObject {
             defaults.set(value.doubleValue, forKey: Keys.nextCheckDate)
         }
 
-        defaults.set("1", forKey: Keys.migrated)
+        defaults.set("2", forKey: Keys.migrated)
         defaults.removeObject(forKey: legacyFrequency)
         defaults.removeObject(forKey: legacyNextDate)
     }
-
 }
 
 private enum GatePassUpdateError: LocalizedError {
@@ -933,8 +1016,9 @@ private enum GatePassUpdateError: LocalizedError {
         case .checksumUnavailable: return "The release checksum could not be downloaded."
         case .checksumMissingForAsset: return "The release has no checksum for this download."
         case .checksumMismatch: return "The downloaded update failed its SHA-256 check."
-        case .invalidArchive: return "The update archive does not contain exactly one GatePass app."
-        case let .installLocationNotWritable(path): return "GatePass cannot replace the app in \(path). Move it to a folder you can write to, then try again."
+        case .invalidArchive: return "The update archive does not contain exactly one valid GatePass app."
+        case let .installLocationNotWritable(path):
+            return "GatePass cannot replace the app in \(path). Move it to a folder you can write to, then try again."
         case let .processFailed(command): return "The update verification command failed: \(command)"
         }
     }
@@ -955,27 +1039,24 @@ struct GatePassUpdateView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if updater.isChecking {
-                    ProgressView()
-                        .controlSize(.small)
-                }
+                if updater.isChecking { ProgressView().controlSize(.small) }
             }
 
-            if let release = updater.releases.first {
+            if let error = updater.updateError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.secondary)
+            } else if let release = updater.releases.first {
                 Text("Latest release: \(release.tagName)")
                     .font(.headline)
 
-                if let notes = release.modifiedBody(owner: updater.owner, repo: updater.repo) {
+                if let notes = release.releaseNotes {
                     ScrollView {
-                        Text(AttributedString(notes))
+                        Text(notes)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                     }
                     .frame(maxHeight: 230)
                 }
-            } else if let error = updater.updateError {
-                Label(error, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "shippingbox")
@@ -999,7 +1080,7 @@ struct GatePassUpdateView: View {
             HStack {
                 Button("Close") { dismiss() }
                 Spacer()
-                Button("Update") {
+                Button(updater.forceUpdateRequested ? "Reinstall" : "Update") {
                     updater.downloadUpdate()
                 }
                 .buttonStyle(.borderedProminent)
