@@ -10,15 +10,20 @@ struct UpdateSettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
-            GroupBox(gatePassCopy("更新来源", "Update source", language: language)) {
+            GatePassPanel {
                 VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
+                    Text(gatePassCopy("更新来源", "Update source", language: language))
+                        .gatePassTypography(GatePassTheme.typographySectionTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
+
                     HStack(alignment: .center, spacing: GatePassTheme.spaceL) {
                         VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
                             Text(gatePassCopy("下载更新时使用的来源", "Source used for update downloads", language: language))
-                                .font(.callout)
+                                .gatePassTypography(GatePassTheme.typographyBody)
+                                .foregroundStyle(GatePassTheme.textPrimary)
                             Text(updateSourceDescription)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .gatePassTypography(GatePassTheme.typographyCaption)
+                                .foregroundStyle(GatePassTheme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
@@ -35,6 +40,7 @@ struct UpdateSettingsTab: View {
                             Text("ghproxy.net")
                                 .tag(GatePassUpdateSource.ghproxyNet)
                         }
+                        .font(GatePassTheme.typeControl)
                         .pickerStyle(.menu)
                         .frame(width: 220)
                     }
@@ -45,44 +51,53 @@ struct UpdateSettingsTab: View {
                             "Release metadata always comes from GitHub. The app archive and checksum prefer the selected mirror and fall back to GitHub if needed.",
                             language: language
                         ))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .gatePassTypography(GatePassTheme.typographyCaption)
+                            .foregroundStyle(GatePassTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.vertical, GatePassTheme.spaceS)
-                .padding(.horizontal, GatePassTheme.spaceXS)
             }
 
-            GroupBox(gatePassCopy("自动检查", "Automatic checks", language: language)) {
-                HStack(spacing: GatePassTheme.spaceL) {
-                    VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
-                        Text(gatePassCopy("自动检查 GatePass 更新", "Automatically check for GatePass updates", language: language))
-                            .font(.callout)
-                        Text(updateDescription)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+            GatePassPanel {
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
+                    Text(gatePassCopy("自动检查", "Automatic checks", language: language))
+                        .gatePassTypography(GatePassTheme.typographySectionTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
 
-                    Spacer()
+                    HStack(spacing: GatePassTheme.spaceL) {
+                        VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                            Text(gatePassCopy("自动检查 GatePass 更新", "Automatically check for GatePass updates", language: language))
+                                .gatePassTypography(GatePassTheme.typographyBody)
+                                .foregroundStyle(GatePassTheme.textPrimary)
+                            Text(updateDescription)
+                                .gatePassTypography(GatePassTheme.typographyCaption)
+                                .foregroundStyle(GatePassTheme.textSecondary)
+                        }
 
-                    Picker(gatePassCopy("检查频率", "Check frequency", language: language), selection: $updater.updateFrequency) {
-                        Text(gatePassCopy("从不", "Never", language: language)).tag(GatePassUpdateFrequency.none)
-                        Text(gatePassCopy("每天", "Daily", language: language)).tag(GatePassUpdateFrequency.daily)
-                        Text(gatePassCopy("每周", "Weekly", language: language)).tag(GatePassUpdateFrequency.weekly)
-                        Text(gatePassCopy("每月", "Monthly", language: language)).tag(GatePassUpdateFrequency.monthly)
+                        Spacer()
+
+                        Picker(gatePassCopy("检查频率", "Check frequency", language: language), selection: $updater.updateFrequency) {
+                            Text(gatePassCopy("从不", "Never", language: language)).tag(GatePassUpdateFrequency.none)
+                            Text(gatePassCopy("每天", "Daily", language: language)).tag(GatePassUpdateFrequency.daily)
+                            Text(gatePassCopy("每周", "Weekly", language: language)).tag(GatePassUpdateFrequency.weekly)
+                            Text(gatePassCopy("每月", "Monthly", language: language)).tag(GatePassUpdateFrequency.monthly)
+                        }
+                        .font(GatePassTheme.typeControl)
+                        .labelsHidden()
+                        .frame(width: 110)
                     }
-                    .labelsHidden()
-                    .frame(width: 110)
                 }
-                .padding(.vertical, GatePassTheme.spaceS)
-                .padding(.horizontal, GatePassTheme.spaceXS)
             }
 
-            GroupBox(gatePassCopy("最近版本", "Recent releases", language: language)) {
-                releaseHistory
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, GatePassTheme.spaceS)
+            GatePassPanel {
+                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
+                    Text(gatePassCopy("最近版本", "Recent releases", language: language))
+                        .gatePassTypography(GatePassTheme.typographySectionTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
+
+                    releaseHistory
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(maxHeight: .infinity)
 
@@ -109,6 +124,7 @@ struct UpdateSettingsTab: View {
                     Label(gatePassCopy("发布页面", "Release page", language: language), systemImage: "arrow.up.right.square")
                 }
             }
+            .font(GatePassTheme.typeControl)
             .controlSize(.regular)
         }
         .padding(.top, GatePassTheme.spaceS)
@@ -151,15 +167,16 @@ struct UpdateSettingsTab: View {
         if updater.releases.isEmpty {
             VStack(spacing: GatePassTheme.spaceS) {
                 Image(systemName: "shippingbox")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(GatePassTheme.textSecondary)
                 Text(gatePassCopy("暂无版本记录", "No release history", language: language))
-                    .font(.callout.weight(.medium))
+                    .gatePassTypography(GatePassTheme.typographyControl)
+                    .foregroundStyle(GatePassTheme.textPrimary)
                 Text(updater.updateFrequency == .none
                      ? gatePassCopy("自动检查已关闭。", "Automatic checks are off.", language: language)
                      : gatePassCopy("点按“检查更新”获取最新信息。", "Click “Check for updates” to fetch the latest information.", language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyCaption)
+                    .foregroundStyle(GatePassTheme.textSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -168,23 +185,26 @@ struct UpdateSettingsTab: View {
                     ForEach(Array(updater.releases.prefix(3))) { release in
                         VStack(alignment: .leading, spacing: GatePassTheme.spaceS) {
                             Text(release.tagName)
-                                .font(.headline)
+                                .gatePassTypography(GatePassTheme.typographySectionTitle)
+                                .foregroundStyle(GatePassTheme.textPrimary)
 
                             if let notes = release.releaseNotes {
                                 Text(notes)
-                                    .font(.callout)
-                                    .foregroundStyle(.secondary)
+                                    .gatePassTypography(GatePassTheme.typographyBody)
+                                    .foregroundStyle(GatePassTheme.textSecondary)
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else {
                                 Text(gatePassCopy("无法显示此版本的发布说明。", "Unable to display the release notes.", language: language))
-                                    .font(.callout)
-                                    .foregroundStyle(.secondary)
+                                    .gatePassTypography(GatePassTheme.typographyBody)
+                                    .foregroundStyle(GatePassTheme.textSecondary)
                             }
                         }
 
                         if release.id != updater.releases.prefix(3).last?.id {
-                            Divider()
+                            Rectangle()
+                                .fill(GatePassTheme.divider)
+                                .frame(height: GatePassTheme.dividerWidth)
                         }
                     }
                 }
