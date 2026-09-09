@@ -21,14 +21,15 @@ struct AboutView: View {
 
                 VStack(spacing: GatePassTheme.spaceXS) {
                     Text(Bundle.main.name)
-                        .font(.title2.weight(.bold))
+                        .gatePassTypography(GatePassTheme.typographyPageTitle)
+                        .foregroundStyle(GatePassTheme.textPrimary)
                     Text(gatePassCopy(
                         "版本 \(Bundle.main.version) · 构建 \(Bundle.main.buildVersion)",
                         "Version \(Bundle.main.version) · Build \(Bundle.main.buildVersion)",
                         language: language
                     ))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .gatePassTypography(GatePassTheme.typographyCaption)
+                        .foregroundStyle(GatePassTheme.textSecondary)
                 }
 
                 Text(gatePassCopy(
@@ -36,10 +37,9 @@ struct AboutView: View {
                     "Built for trusted local App workflows.\nRemove quarantine quickly while keeping the recommended app source policy.",
                     language: language
                 ))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyBody)
+                    .foregroundStyle(GatePassTheme.textSecondary)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(GatePassTheme.spaceXS)
             }
 
             HStack(spacing: GatePassTheme.spaceM) {
@@ -55,13 +55,14 @@ struct AboutView: View {
                     Label(gatePassCopy("反馈问题", "Report an issue", language: language), systemImage: "bubble.left.and.exclamationmark.bubble.right")
                 }
             }
+            .font(GatePassTheme.typeControl)
             .buttonStyle(.bordered)
 
             Spacer()
 
             Text(gatePassCopy("GatePass 是开源软件", "GatePass is open source", language: language))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .gatePassTypography(GatePassTheme.typographyCaption)
+                .foregroundStyle(GatePassTheme.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(GatePassTheme.spaceXL)
