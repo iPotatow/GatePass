@@ -44,15 +44,15 @@ GatePass 是一款原生 SwiftUI 工具，面向了解系统安全影响的高�
 
 ## 获取 GatePass
 
-从 [GitHub Releases](https://github.com/iPotatow/GatePass/releases) 下载最新 ZIP 或 DMG。`0.2.1` 统一了主窗口的 Sidebar、Content Surface 与页面标题对齐。
+从 [GitHub Releases](https://github.com/iPotatow/GatePass/releases) 下载最新 ZIP 或 DMG。`0.2.3` 加固了应用内更新：手动检查始终给出结果反馈，版本元数据固定从 GitHub 获取，镜像只负责安装包与校验文件下载并在失败时自动回退 GitHub，同时保留 SHA-256 校验、安装前验证与回滚保护。
 
-每个自动发布版本包含：
+每个正式发布版本包含：
 
 - `GatePass.zip`，用于安装和 App 内更新。
 - `GatePass-<版本号>.dmg`，用于首次安装和手动更新。
 - `SHA256SUMS`，用于完整性校验。
 
-当 [`VERSION`](VERSION) 在 `main` 分支发生变化，或推送匹配的版本 Tag（例如 `v0.2.0`）时，发布工作流会构建并发布版本。只修改代码的普通推送不会发布 Release。DMG 还包含一个可选的解除隔离辅助脚本；只有在核验 App 来源后才应使用它。
+正式 Release 仅由与 [`VERSION`](VERSION) 完全一致的 `v<版本号>` Tag 触发。工作流会确认 Tag、`VERSION` 与实际构建 Commit 一致；如果同名 Release 已存在则直接失败，不允许覆盖既有版本或重新上传同版本资产。普通 `main` 分支提交和仅修改 `VERSION` 都不会直接发布 Release。
 
 ## 快速开始
 
@@ -87,9 +87,9 @@ script/build_dmg.sh /path/to/GatePass.app <版本号> <发布目录>
 | --- | --- |
 | `GatePass/` | SwiftUI 主应用、App 放行流程、Gatekeeper 状态和设置 |
 | `GatePass/Features/SystemPreferences/` | 偏好目录、带类型 defaults 客户端、计划器、执行器、恢复和历史界面 |
-| `Tests/` | 系统偏好回归测试和 macOS defaults 审计 |
-| `VERSION` | 唯一发布版本号 |
-| `.github/workflows/` | 发布打包和跨 macOS 版本的偏好检查 |
+| `Tests/` | 系统偏好与应用内更新回归测试，以及 macOS defaults 审计 |
+| `VERSION` | 唯一正式发布版本号 |
+| `.github/workflows/` | Tag-only Release 打包、Updater CI 与跨 macOS 版本的偏好检查 |
 | `script/` | 本地构建、启动、DMG 打包和 DMG 背景辅助脚本 |
 
 ## 贡献
