@@ -1,18 +1,39 @@
-name: Release GatePass
+name: GatePass CI / Release
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - GatePass/**
+      - GatePass.xcodeproj/**
+      - Tests/**
+      - script/**
+      - .github/release-assets/**
+      - VERSION
+      - .github/workflows/build.yml
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Create the v<VERSION> GitHub Release if it does not exist"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
 
+concurrency:
+  group: gatepass-ci-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Package GatePass
+    name: Build and package GatePass
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out source
@@ -20,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve immutable release version
+      - name: Resolve version
         id: version
         shell: bash
         run: |
@@ -28,41 +49,91 @@ jobs:
           VERSION="$(tr -d '[:space:]' < VERSION)"
 
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION must use semantic versioning, for example 0.2.3. Got: $VERSION" >&2
+            echo "VERSION must use semantic versioning, for example 0.2.4. Got: $VERSION" >&2
             exit 1
           fi
 
           TAG="v$VERSION"
-          if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$TAG" ]]; then
-            echo "Release builds must be triggered by the exact VERSION tag ($TAG). Got: $GITHUB_REF_NAME" >&2
-            exit 1
-          fi
-
-          TAG_COMMIT="$(git rev-list -n 1 "$TAG")"
-          if [[ "$TAG_COMMIT" != "$GITHUB_SHA" ]]; then
-            echo "Tag $TAG resolves to $TAG_COMMIT but the workflow is building $GITHUB_SHA." >&2
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match VERSION ($TAG)." >&2
             exit 1
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Refuse mutable releases
+      - name: Determine release intent
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $TAG already exists. GatePass releases are immutable; bump VERSION and create a new tag." >&2
-            exit 1
+          SHOULD_PUBLISH=false
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+            SHOULD_PUBLISH=true
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish_release }}" == "true" ]]; then
+            SHOULD_PUBLISH=true
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" == "main" ]]; then
+            if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              SHOULD_PUBLISH=true
+            fi
           fi
 
-      - name: Report Xcode version
-        run: xcodebuild -version
+          if [[ "$SHOULD_PUBLISH" == "true" ]]; then
+            if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              TAG_COMMIT="$(git rev-list -n 1 "$TAG")"
+              if [[ "$TAG_COMMIT" != "$GITHUB_SHA" ]]; then
+                echo "Tag $TAG already points to $TAG_COMMIT instead of $GITHUB_SHA." >&2
+                exit 1
+              fi
+            fi
 
-      - name: Run updater regression suite
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "Release $TAG already exists; GatePass releases are immutable." >&2
+              exit 1
+            fi
+          fi
+
+          echo "should_publish=$SHOULD_PUBLISH" >> "$GITHUB_OUTPUT"
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: System Preferences regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library \
+            Tests/SystemPreferencesCoreTests.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceModels.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceMetadata.swift \
+            GatePass/Features/SystemPreferences/MacSystemPreferencesCatalog.swift \
+            GatePass/Features/SystemPreferences/SystemDefaultsClient.swift \
+            GatePass/Features/SystemPreferences/SystemPreferencesEngine.swift \
+            -o "$RUNNER_TEMP/system-preferences-core-tests"
+          "$RUNNER_TEMP/system-preferences-core-tests"
+
+      - name: System Preferences defaults audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun swiftc -parse-as-library \
+            Tests/SystemPreferencesDefaultsAudit.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceModels.swift \
+            GatePass/Features/SystemPreferences/SystemPreferenceMetadata.swift \
+            GatePass/Features/SystemPreferences/MacSystemPreferencesCatalog.swift \
+            GatePass/Features/SystemPreferences/SystemDefaultsClient.swift \
+            -o "$RUNNER_TEMP/system-preferences-defaults-audit"
+          "$RUNNER_TEMP/system-preferences-defaults-audit"
+
+      - name: Updater regression suite
+        shell: bash
         run: |
           set -euo pipefail
           xcrun swiftc -parse-as-library \
@@ -82,6 +153,7 @@ jobs:
           -configuration Release
           -sdk macosx
           -derivedDataPath "$RUNNER_TEMP/DerivedData"
+          MACOSX_DEPLOYMENT_TARGET=13.0
           MARKETING_VERSION=${{ steps.version.outputs.version }}
           CURRENT_PROJECT_VERSION=${{ github.run_number }}
           CODE_SIGNING_ALLOWED=NO
@@ -96,9 +168,11 @@ jobs:
 
           APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/GatePass.app"
           RELEASE_DIR="$RUNNER_TEMP/release"
+          CI_ARTIFACT_DIR="$RUNNER_TEMP/ci-artifact"
 
           test -d "$APP"
-          mkdir -p "$RELEASE_DIR"
+          rm -rf "$RELEASE_DIR" "$CI_ARTIFACT_DIR"
+          mkdir -p "$RELEASE_DIR" "$CI_ARTIFACT_DIR"
 
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$RELEASE_DIR/GatePass.zip"
           script/build_dmg.sh "$APP" "$VERSION" "$RELEASE_DIR"
@@ -108,15 +182,55 @@ jobs:
             shasum -a 256 GatePass.zip "GatePass-$VERSION.dmg" > SHA256SUMS
           )
 
-      - name: Upload release package
+          ditto "$APP" "$CI_ARTIFACT_DIR/GatePass.app"
+          cp "$RELEASE_DIR/GatePass-$VERSION.dmg" "$CI_ARTIFACT_DIR/"
+
+      - name: Verify release packages
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_DIR="$RUNNER_TEMP/release"
+          ZIP="$RELEASE_DIR/GatePass.zip"
+          DMG="$RELEASE_DIR/GatePass-$VERSION.dmg"
+          ZIP_EXTRACT="$RUNNER_TEMP/zip-verify"
+          DMG_MOUNT="$RUNNER_TEMP/dmg-mount"
+
+          test -s "$ZIP"
+          test -s "$DMG"
+          test -s "$RELEASE_DIR/SHA256SUMS"
+
+          rm -rf "$ZIP_EXTRACT" "$DMG_MOUNT"
+          mkdir -p "$ZIP_EXTRACT" "$DMG_MOUNT"
+          ditto -xk "$ZIP" "$ZIP_EXTRACT"
+          test -d "$ZIP_EXTRACT/GatePass.app"
+          test ! -f "$ZIP_EXTRACT/GatePass.zip"
+
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$DMG_MOUNT"
+          trap 'hdiutil detach "$DMG_MOUNT" >/dev/null 2>&1 || true' EXIT
+          test -d "$DMG_MOUNT/GatePass.app"
+          test -L "$DMG_MOUNT/Applications"
+          test -x "$DMG_MOUNT/Install.command"
+          hdiutil detach "$DMG_MOUNT"
+          trap - EXIT
+
+          (
+            cd "$RELEASE_DIR"
+            shasum -a 256 -c SHA256SUMS
+          )
+
+      - name: Upload CI package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: GatePass-${{ steps.version.outputs.version }}
-          path: ${{ runner.temp }}/release
+          path: ${{ runner.temp }}/ci-artifact
           if-no-files-found: error
           retention-days: 14
 
       - name: Publish immutable GitHub Release
+        if: steps.release.outputs.should_publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -130,6 +244,6 @@ jobs:
             "$RELEASE_DIR/GatePass-$VERSION.dmg" \
             "$RELEASE_DIR/SHA256SUMS" \
             --repo "$GITHUB_REPOSITORY" \
-            --verify-tag \
+            --target "$GITHUB_SHA" \
             --title "GatePass $VERSION" \
             --generate-notes
