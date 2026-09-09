@@ -41,8 +41,8 @@ struct UpdateSettingsTab: View {
 
                     if updater.updateSource != .github {
                         Text(gatePassCopy(
-                            "版本信息、安装包和校验文件都会通过所选镜像站获取。",
-                            "Release data, the app archive, and checksum files will use the selected mirror.",
+                            "版本信息始终从 GitHub 获取；安装包和校验文件优先使用所选镜像，失败时自动回退到 GitHub。",
+                            "Release metadata always comes from GitHub. The app archive and checksum prefer the selected mirror and fall back to GitHub if needed.",
                             language: language
                         ))
                             .font(.caption)
@@ -88,16 +88,18 @@ struct UpdateSettingsTab: View {
 
             HStack(spacing: GatePassTheme.spaceM) {
                 Button {
-                    updater.checkForUpdates(sheet: false, force: false)
+                    updater.checkForUpdates(reason: .manual)
                 } label: {
                     Label(gatePassCopy("检查更新", "Check for updates", language: language), systemImage: "arrow.clockwise")
                 }
+                .disabled(updater.isChecking || updater.isUpdating)
 
                 Button {
-                    updater.checkForUpdates(sheet: true, force: true, forceUpdate: true)
+                    updater.checkForUpdates(reason: .reinstallCurrent)
                 } label: {
                     Label(gatePassCopy("重新安装当前版本", "Reinstall current version", language: language), systemImage: "arrow.counterclockwise")
                 }
+                .disabled(updater.isChecking || updater.isUpdating)
 
                 Spacer()
 
@@ -113,19 +115,17 @@ struct UpdateSettingsTab: View {
     }
 
     private var updateDescription: String {
-        let source = updater.updateSource.displayName
-
         switch updater.updateFrequency {
         case .none:
-            return gatePassCopy("只在你手动检查时连接 \(source)。", "Contact \(source) only when you check manually.", language: language)
+            return gatePassCopy("只在你手动检查时从 GitHub 获取版本信息。", "Only fetch release information from GitHub when you check manually.", language: language)
         case .daily:
-            return gatePassCopy("每天通过 \(source) 检查一次是否有新版本。", "Check \(source) once a day for a new version.", language: language)
+            return gatePassCopy("每天从 GitHub 检查一次是否有新版本。", "Check GitHub once a day for a new version.", language: language)
         case .weekly:
-            return gatePassCopy("每周通过 \(source) 检查一次是否有新版本。", "Check \(source) once a week for a new version.", language: language)
+            return gatePassCopy("每周从 GitHub 检查一次是否有新版本。", "Check GitHub once a week for a new version.", language: language)
         case .monthly:
-            return gatePassCopy("每月通过 \(source) 检查一次是否有新版本。", "Check \(source) once a month for a new version.", language: language)
+            return gatePassCopy("每月从 GitHub 检查一次是否有新版本。", "Check GitHub once a month for a new version.", language: language)
         @unknown default:
-            return gatePassCopy("按所选频率通过 \(source) 检查新版本。", "Check for new versions through \(source) at the selected frequency.", language: language)
+            return gatePassCopy("按所选频率从 GitHub 检查新版本。", "Check GitHub for new versions at the selected frequency.", language: language)
         }
     }
 
@@ -133,14 +133,14 @@ struct UpdateSettingsTab: View {
         switch updater.updateSource {
         case .github:
             return gatePassCopy(
-                "从 GitHub 获取版本信息、安装包和校验文件。",
-                "Get release data, the app archive, and checksum files from GitHub.",
+                "直接从 GitHub 下载安装包和校验文件。",
+                "Download the app archive and checksum files directly from GitHub.",
                 language: language
             )
         case .ghProxy, .ghproxyNet, .legacyMirror:
             return gatePassCopy(
-                "通过 \(updater.updateSource.displayName) 获取版本信息、安装包和校验文件。",
-                "Get release data, the app archive, and checksum files through \(updater.updateSource.displayName).",
+                "优先通过 \(updater.updateSource.displayName) 下载；镜像失败时自动回退到 GitHub。",
+                "Prefer \(updater.updateSource.displayName) for downloads and fall back to GitHub if the mirror fails.",
                 language: language
             )
         }
@@ -170,8 +170,8 @@ struct UpdateSettingsTab: View {
                             Text(release.tagName)
                                 .font(.headline)
 
-                            if let notes = release.modifiedBody(owner: "iPotatow", repo: "GatePass") {
-                                Text(AttributedString(notes))
+                            if let notes = release.releaseNotes {
+                                Text(notes)
                                     .font(.callout)
                                     .foregroundStyle(.secondary)
                                     .textSelection(.enabled)
