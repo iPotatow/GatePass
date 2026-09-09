@@ -1,0 +1,58 @@
+name: GatePass App Build CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - GatePass/**
+      - GatePass.xcodeproj/**
+      - VERSION
+      - .github/workflows/app-build-ci.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - GatePass/**
+      - GatePass.xcodeproj/**
+      - VERSION
+      - .github/workflows/app-build-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gatepass-app-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-15
+          - macos-26
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build GatePass for macOS 13 deployment target
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project GatePass.xcodeproj \
+            -target GatePass \
+            -configuration Debug \
+            MACOSX_DEPLOYMENT_TARGET=13.0 \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty
