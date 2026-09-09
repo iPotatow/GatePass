@@ -10,7 +10,7 @@ struct GeneralSettingsTab: View {
 
     var body: some View {
         Form {
-            Section(gatePassCopy("应用语言", "App Language", language: language)) {
+            Section {
                 Picker(gatePassCopy("界面语言", "Interface language", language: language), selection: $languageRaw) {
                     ForEach(AppLanguage.allCases) { option in
                         Text(option.displayName(in: language))
@@ -23,11 +23,15 @@ struct GeneralSettingsTab: View {
                     "Changes apply immediately to the main window and Settings.",
                     language: language
                 ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyCaption)
+                    .foregroundStyle(GatePassTheme.textSecondary)
+            } header: {
+                Text(gatePassCopy("应用语言", "App Language", language: language))
+                    .gatePassTypography(GatePassTheme.typographyGroupLabel)
+                    .foregroundStyle(GatePassTheme.textSecondary)
             }
 
-            Section(gatePassCopy("处理完成后", "After Processing", language: language)) {
+            Section {
                 Toggle(
                     gatePassCopy("解除隔离后自动打开 App", "Open the App after removing quarantine", language: language),
                     isOn: $autoLaunch
@@ -38,11 +42,15 @@ struct GeneralSettingsTab: View {
                     "Only applies when processing one App at a time. When off, GatePass only removes the quarantine attribute.",
                     language: language
                 ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyCaption)
+                    .foregroundStyle(GatePassTheme.textSecondary)
+            } header: {
+                Text(gatePassCopy("处理完成后", "After Processing", language: language))
+                    .gatePassTypography(GatePassTheme.typographyGroupLabel)
+                    .foregroundStyle(GatePassTheme.textSecondary)
             }
-
         }
+        .font(GatePassTheme.typeControl)
         .formStyle(.grouped)
     }
 }
