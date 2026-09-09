@@ -4,7 +4,12 @@ import Foundation
 @main
 enum GatePassUpdaterTests {
     static func main() async throws {
+        try versionComparisonIsSemantic()
+        try stableReleaseSortingFiltersDraftsAndPrereleases()
         try updateEndpointUsesBuiltInMirrors()
+        try updateAssetSelectionPrefersArchitectureThenGeneric()
+        try checksumManifestParsesExactAsset()
+        try releaseNotesRemoveDuplicateLines()
         try await processRunnerDrainsLargeOutput()
         try await installationScriptStagesBeforeReplacingAndKeepsRollback()
         try await installationScriptLeavesCurrentVersionOnVerificationFailure()
@@ -12,32 +17,95 @@ enum GatePassUpdaterTests {
         print("GatePass updater tests passed")
     }
 
+    private static func versionComparisonIsSemantic() throws {
+        let v029 = try requireVersion("0.2.9")
+        let v0210 = try requireVersion("0.2.10")
+        let prefixed = try requireVersion("v0.2.10")
+        let extended = try requireVersion("0.2.10.0")
+
+        try expect(v0210 > v029, "Semantic version comparison treated 0.2.10 as older than 0.2.9")
+        try expect(prefixed == v0210, "Leading v prefix changed semantic version identity")
+        try expect(extended == v0210, "Trailing zero component changed semantic version identity")
+    }
+
+    private static func stableReleaseSortingFiltersDraftsAndPrereleases() throws {
+        let releases = [
+            GatePassRelease(id: 1, tagName: "v0.2.9"),
+            GatePassRelease(id: 2, tagName: "v0.2.10"),
+            GatePassRelease(id: 3, tagName: "v0.3.0", prerelease: true),
+            GatePassRelease(id: 4, tagName: "v0.4.0", draft: true),
+            GatePassRelease(id: 5, tagName: "nightly")
+        ]
+        let sorted = GatePassRelease.stableSorted(releases)
+        try expect(sorted.map(\.tagName) == ["v0.2.10", "v0.2.9"], "Stable release sorting/filtering returned an unexpected order")
+    }
+
     private static func updateEndpointUsesBuiltInMirrors() throws {
-        let originalURL = URL(string: "https://api.github.com/repos/iPotatow/GatePass/releases")!
+        let originalURL = URL(string: "https://github.com/iPotatow/GatePass/releases/download/v0.2.3/GatePass.zip")!
 
-        let ghProxy = GatePassUpdateEndpoint.resolve(
-            originalURL: originalURL,
-            source: .ghProxy
-        )
+        let ghProxy = GatePassUpdateEndpoint.resolve(originalURL: originalURL, source: .ghProxy)
         try expect(
-            ghProxy?.absoluteString == "https://gh-proxy.com/https://api.github.com/repos/iPotatow/GatePass/releases",
-            "gh-proxy.com did not preserve the original URL"
+            ghProxy?.absoluteString == "https://gh-proxy.com/https://github.com/iPotatow/GatePass/releases/download/v0.2.3/GatePass.zip",
+            "gh-proxy.com did not preserve the original download URL"
         )
 
-        let ghproxyNet = GatePassUpdateEndpoint.resolve(
-            originalURL: originalURL,
-            source: .ghproxyNet
-        )
+        let ghproxyNet = GatePassUpdateEndpoint.resolve(originalURL: originalURL, source: .ghproxyNet)
         try expect(
-            ghproxyNet?.absoluteString == "https://ghproxy.net/https://api.github.com/repos/iPotatow/GatePass/releases",
-            "ghproxy.net did not preserve the original URL"
+            ghproxyNet?.absoluteString == "https://ghproxy.net/https://github.com/iPotatow/GatePass/releases/download/v0.2.3/GatePass.zip",
+            "ghproxy.net did not preserve the original download URL"
         )
 
-        let github = GatePassUpdateEndpoint.resolve(
-            originalURL: originalURL,
-            source: .github
-        )
+        let github = GatePassUpdateEndpoint.resolve(originalURL: originalURL, source: .github)
         try expect(github == originalURL, "GitHub source was unexpectedly rewritten")
+    }
+
+    private static func updateAssetSelectionPrefersArchitectureThenGeneric() throws {
+        let arm = GatePassAsset(name: "GatePass-arm.zip", url: "arm", browserDownloadURL: "")
+        let intel = GatePassAsset(name: "GatePass-intel.zip", url: "intel", browserDownloadURL: "")
+        let generic = GatePassAsset(name: "GatePass.zip", url: "generic", browserDownloadURL: "")
+        let dmg = GatePassAsset(name: "GatePass-0.2.3.dmg", url: "dmg", browserDownloadURL: "")
+
+        let armSelection = GatePassUpdateAssetSelector.select(
+            from: [generic, intel, dmg, arm],
+            appName: "GatePass",
+            architecture: "arm"
+        )
+        try expect(armSelection == arm, "ARM update did not select the architecture-specific ZIP")
+
+        let fallbackSelection = GatePassUpdateAssetSelector.select(
+            from: [dmg, generic],
+            appName: "GatePass",
+            architecture: "arm"
+        )
+        try expect(fallbackSelection == generic, "Update asset selector did not fall back to the generic ZIP")
+    }
+
+    private static func checksumManifestParsesExactAsset() throws {
+        let zipHash = String(repeating: "a", count: 64)
+        let dmgHash = String(repeating: "b", count: 64)
+        let manifest = "\(zipHash)  GatePass.zip\n\(dmgHash) *GatePass-0.2.3.dmg\n"
+
+        try expect(
+            GatePassChecksumManifest.expectedSHA256(in: manifest, for: "GatePass.zip") == zipHash,
+            "Checksum parser did not find the ZIP hash"
+        )
+        try expect(
+            GatePassChecksumManifest.expectedSHA256(in: manifest, for: "GatePass-0.2.3.dmg") == dmgHash,
+            "Checksum parser did not accept the shasum binary marker"
+        )
+        try expect(
+            GatePassChecksumManifest.expectedSHA256(in: manifest, for: "Missing.zip") == nil,
+            "Checksum parser matched the wrong asset"
+        )
+    }
+
+    private static func releaseNotesRemoveDuplicateLines() throws {
+        let body = "**Full Changelog**: https://example.com/compare\n\n**Full Changelog**: https://example.com/compare\n"
+        let cleaned = GatePassRelease.cleanedReleaseBody(body)
+        try expect(
+            cleaned.components(separatedBy: "**Full Changelog**").count - 1 == 1,
+            "Duplicate release-note lines were not removed"
+        )
     }
 
     private static func processRunnerDrainsLargeOutput() async throws {
@@ -186,6 +254,13 @@ enum GatePassUpdaterTests {
         try expect(fileManager.fileExists(atPath: updateRoot.path), "Pending record was removed after a mismatched confirmation")
     }
 
+    private static func requireVersion(_ raw: String) throws -> GatePassVersion {
+        guard let version = GatePassVersion(raw) else {
+            throw TestFailure(message: "Could not parse test version: \(raw)")
+        }
+        return version
+    }
+
     private static func makeTemporaryRoot(named name: String) throws -> URL {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("gatepass-updater-\(name)-\(UUID().uuidString)", isDirectory: true)
@@ -227,7 +302,6 @@ private struct TestFailure: Error, CustomStringConvertible {
     let message: String
     var description: String { message }
 }
-
 
 enum GatePassLogCategory {
     static let updater = "Updater"
