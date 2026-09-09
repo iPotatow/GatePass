@@ -143,7 +143,7 @@ enum GatePassTheme {
 
     // MARK: - Colors
 
-    static let accent = adaptiveColor(light: (0, 122, 255), dark: (10, 132, 255))
+    static let accent = adaptiveColor(light: (255, 149, 0), dark: (255, 159, 10))
     static let onAccent = adaptiveColor(light: (255, 255, 255), dark: (255, 255, 255))
     static let windowBackground = adaptiveColor(light: (244, 244, 245), dark: (28, 28, 30))
     static let sidebarBackground = adaptiveColor(light: (242, 242, 243), dark: (32, 32, 34))
@@ -173,14 +173,14 @@ enum GatePassTheme {
         darkAlpha: 0.10
     )
     static let selectionBackground = adaptiveColor(
-        light: (0, 122, 255),
-        dark: (10, 132, 255),
+        light: (255, 149, 0),
+        dark: (255, 159, 10),
         lightAlpha: 0.14,
         darkAlpha: 0.20
     )
     static let focusRing = adaptiveColor(
-        light: (0, 122, 255),
-        dark: (10, 132, 255),
+        light: (255, 149, 0),
+        dark: (255, 159, 10),
         lightAlpha: 0.35,
         darkAlpha: 0.45
     )
