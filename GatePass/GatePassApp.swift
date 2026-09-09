@@ -38,7 +38,7 @@ private struct GatePassUpdateSheet: View {
 
     var body: some View {
         if updater.hasNewerGatePassRelease || updater.forceUpdateRequested || updater.isChecking || updater.updateError != nil {
-            updater.getUpdateView()
+            GatePassStyledUpdateView(updater: updater)
         } else {
             GatePassNoUpdateView(updater: updater)
         }
@@ -137,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 continue
             }
 
-            handleOpenedApp(url: fileURL, appState: appState)
+            handleOpenedApp(url: fileURL, appState: AppState.shared)
         }
     }
 }
