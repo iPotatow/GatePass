@@ -16,7 +16,7 @@ struct AboutCommand: Commands {
         CommandGroup(replacing: .appInfo) {
 
             Button {
-                updater.checkForUpdates(sheet: true, force: false)
+                updater.checkForUpdates(reason: .manual)
             } label: {
                 Text(gatePassCopy("检查更新", "Check for Updates", language: language))
             }
