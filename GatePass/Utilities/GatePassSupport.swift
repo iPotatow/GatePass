@@ -95,7 +95,8 @@ struct DebugConsoleView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("Console Logs")
-                    .font(.headline)
+                    .gatePassTypography(GatePassTheme.typographySectionTitle)
+                    .foregroundStyle(GatePassTheme.textPrimary)
                 Spacer()
                 Button {
                     copyAllLogs()
@@ -103,7 +104,7 @@ struct DebugConsoleView: View {
                     Image(systemName: "doc.on.doc")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.blue)
+                .tint(GatePassTheme.accent)
                 .disabled(logStore.logs.isEmpty)
                 .help(copied ? "Copied" : "Copy all logs")
 
@@ -113,20 +114,22 @@ struct DebugConsoleView: View {
                     Image(systemName: "trash")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.red)
+                .tint(GatePassTheme.semanticDanger)
                 .disabled(logStore.logs.isEmpty)
                 .help("Clear all logs")
             }
-            .padding()
+            .padding(GatePassTheme.spaceL)
 
             if logStore.logs.isEmpty {
                 Text("No logs available to view")
-                    .foregroundStyle(.secondary)
+                    .gatePassTypography(GatePassTheme.typographyBody)
+                    .foregroundStyle(GatePassTheme.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(logStore.logs.indices.reversed(), id: \.self) { index in
                     Text(logStore.logs[index])
                         .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(GatePassTheme.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                         .onTapGesture {
@@ -137,9 +140,9 @@ struct DebugConsoleView: View {
 
             if copied {
                 Text("Copied to clipboard")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 8)
+                    .gatePassTypography(GatePassTheme.typographyCaption)
+                    .foregroundStyle(GatePassTheme.textSecondary)
+                    .padding(.bottom, GatePassTheme.spaceS)
             }
         }
         .frame(minWidth: 560, minHeight: 340)
