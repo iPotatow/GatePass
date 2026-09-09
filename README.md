@@ -44,15 +44,15 @@ The main window uses a fixed 960 × 680 desktop layout with an always-visible 22
 
 ## Get GatePass
 
-Download the latest ZIP or DMG from [GitHub Releases](https://github.com/iPotatow/GatePass/releases). Version `0.2.1` refreshes the main-window layout for a consistent sidebar, content surface, and page-header alignment.
+Download the latest ZIP or DMG from [GitHub Releases](https://github.com/iPotatow/GatePass/releases). Version `0.2.3` hardens in-app updates: manual checks always return visible feedback, release metadata is fetched directly from GitHub, download mirrors are limited to archives and checksums with automatic GitHub fallback, while SHA-256 verification, pre-install validation, and rollback protection remain in place.
 
-Every automated release contains:
+Every formal release contains:
 
 - `GatePass.zip` for installation and in-app update flows.
 - `GatePass-<version>.dmg` for first-time installation and manual updates.
 - `SHA256SUMS` for integrity verification.
 
-The release workflow builds on `main` when [`VERSION`](VERSION) changes, or when a matching version tag such as `v0.2.0` is pushed. Ordinary code-only pushes do not publish a release. The DMG also includes an optional quarantine helper; use it only after verifying the app's source.
+A formal release is triggered only by a `v<version>` tag that exactly matches [`VERSION`](VERSION). The workflow verifies that the tag, `VERSION`, and the commit being built are identical. If a release with the same tag already exists, publishing fails instead of replacing assets or mutating an existing version. Ordinary `main` pushes and `VERSION`-only changes do not publish a release.
 
 ## Quick start
 
@@ -87,9 +87,9 @@ script/build_dmg.sh /path/to/GatePass.app <version> <release-directory>
 | --- | --- |
 | `GatePass/` | SwiftUI app, App Access flow, Gatekeeper status, and settings |
 | `GatePass/Features/SystemPreferences/` | Catalog, typed defaults client, planner, executor, recovery, and history UI |
-| `Tests/` | System Preferences regression suite and macOS defaults audit |
-| `VERSION` | Single release version |
-| `.github/workflows/` | Release packaging and cross-version preference checks |
+| `Tests/` | System Preferences and in-app updater regression suites plus macOS defaults audits |
+| `VERSION` | Single formal release version |
+| `.github/workflows/` | Tag-only release packaging, updater CI, and cross-version preference checks |
 | `script/` | Local build, run, DMG packaging, and DMG background helpers |
 
 ## Contributing
