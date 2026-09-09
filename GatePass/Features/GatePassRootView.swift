@@ -25,6 +25,7 @@ struct GatePassRootView: View {
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
+                .background(GatePassTheme.sidebarBackground)
                 .clipped()
                 .layoutPriority(1)
 
@@ -42,8 +43,7 @@ struct GatePassRootView: View {
                 .clipShape(
                     RoundedRectangle(cornerRadius: GatePassTheme.contentRadius, style: .continuous)
                 )
-                .shadow(color: .black.opacity(0.10), radius: 3, x: 0, y: 1)
-                .shadow(color: .black.opacity(0.10), radius: 2, x: 0, y: 1)
+                .gatePassContentSurfaceShadow()
                 .padding(
                     EdgeInsets(
                         top: GatePassTheme.contentInset,
@@ -54,7 +54,7 @@ struct GatePassRootView: View {
                 )
         }
         .ignoresSafeArea(.container, edges: .top)
-        .background(GatePassTheme.appBackground)
+        .background(GatePassTheme.windowBackground)
         .frame(
             minWidth: GatePassTheme.windowWidth,
             minHeight: GatePassTheme.windowHeight,
@@ -116,7 +116,8 @@ struct GatePassRootView: View {
                 .accessibilityHidden(true)
 
             Text("GatePass")
-                .font(.system(size: 16, weight: .semibold))
+                .gatePassTypography(GatePassTheme.typographyBrand)
+                .foregroundStyle(GatePassTheme.textPrimary)
 
             Spacer(minLength: 0)
         }
@@ -139,11 +140,11 @@ struct GatePassRootView: View {
                 Image(systemName: systemImage)
                     .font(.system(size: GatePassTheme.navigationIconSize, weight: .medium))
                     .frame(width: GatePassTheme.navigationIconSize)
-                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(selected ? GatePassTheme.accent : GatePassTheme.textSecondary)
 
                 Text(title)
-                    .font(GatePassTheme.typeControl)
-                    .foregroundStyle(Color.primary)
+                    .gatePassTypography(GatePassTheme.typographyControl)
+                    .foregroundStyle(GatePassTheme.textPrimary)
 
                 Spacer(minLength: 0)
             }
@@ -167,7 +168,6 @@ private struct GatePassSidebarButtonStyle: ButtonStyle {
     @State private var isHovered = false
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorSchemeContrast) private var contrast
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -175,25 +175,30 @@ private struct GatePassSidebarButtonStyle: ButtonStyle {
             .frame(height: GatePassTheme.navigationHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                backgroundColor(isPressed: configuration.isPressed),
+                isSelected ? GatePassTheme.selectionBackground : Color.clear,
                 in: RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
             )
             .overlay {
+                RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
+                    .fill(stateOverlay(isPressed: configuration.isPressed))
+            }
+            .overlay {
                 if isFocused {
                     RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
-                        .stroke(GatePassTheme.focusRing, lineWidth: contrast == .increased ? 3 : 2)
+                        .stroke(GatePassTheme.focusRing, lineWidth: GatePassTheme.focusRingWidth)
+                        .padding(-GatePassTheme.focusRingOffset)
                 }
             }
-            .opacity(isEnabled ? 1 : 0.5)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
+            .opacity(isEnabled ? 1 : GatePassTheme.disabledOpacity)
+            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: configuration.isPressed)
+            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: isHovered)
+            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: isFocused)
             .onHover { isHovered = $0 }
     }
 
-    private func backgroundColor(isPressed: Bool) -> Color {
-        if isPressed { return Color.accentColor.opacity(0.18) }
-        if isSelected { return Color.accentColor.opacity(0.12) }
-        if isHovered { return Color.primary.opacity(0.055) }
-        return Color.clear
+    private func stateOverlay(isPressed: Bool) -> Color {
+        if isPressed { return GatePassTheme.pressedOverlay }
+        if isHovered && !isSelected { return GatePassTheme.hoverOverlay }
+        return .clear
     }
 }
