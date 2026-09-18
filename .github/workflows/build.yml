@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - GatePass/**
       - GatePass.xcodeproj/**
@@ -74,7 +75,7 @@ jobs:
 
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
             SHOULD_PUBLISH=true
-          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish_release }}" == "true" ]]; then
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish_release }}" == "true" && "$GITHUB_REF_NAME" == "main" ]]; then
             SHOULD_PUBLISH=true
           elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" == "main" ]]; then
             if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -153,7 +154,7 @@ jobs:
           -configuration Release
           -sdk macosx
           -derivedDataPath "$RUNNER_TEMP/DerivedData"
-          MACOSX_DEPLOYMENT_TARGET=13.0
+          MACOSX_DEPLOYMENT_TARGET=15.0
           MARKETING_VERSION=${{ steps.version.outputs.version }}
           CURRENT_PROJECT_VERSION=${{ github.run_number }}
           CODE_SIGNING_ALLOWED=NO

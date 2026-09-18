@@ -11,18 +11,18 @@ struct SystemPreferencesHistoryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: GatePassTheme.spaceM) {
-                VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+            HStack(spacing: CoreSpacing.m) {
+                VStack(alignment: .leading, spacing: CoreSpacing.xs) {
                     Text(gatePassCopy("操作历史", "History", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+                        .coreTypography(CoreTypography.sectionTitle)
+                        .foregroundStyle(CoreColor.textPrimary)
                     Text(gatePassCopy(
                         "记录最近 200 次系统偏好操作结果。",
                         "Shows the latest 200 System Preferences operations.",
                         language: language
                     ))
-                    .gatePassTypography(GatePassTheme.typographyCaption)
-                    .foregroundStyle(GatePassTheme.textSecondary)
+                    .coreTypography(CoreTypography.caption)
+                    .foregroundStyle(CoreColor.textSecondary)
                 }
 
                 Spacer()
@@ -39,26 +39,26 @@ struct SystemPreferencesHistoryView: View {
                 Button(gatePassCopy("完成", "Done", language: language)) {
                     dismiss()
                 }
-                .font(GatePassTheme.typeControl)
+                .font(CoreTypography.controlFont)
                 .keyboardShortcut(.defaultAction)
             }
-            .padding(GatePassTheme.spaceXL)
+            .padding(CoreSpacing.xl)
 
             Rectangle()
-                .fill(GatePassTheme.divider)
-                .frame(height: GatePassTheme.dividerWidth)
+                .fill(CoreColor.divider)
+                .frame(height: CoreMetrics.dividerWidth)
 
             Group {
                 if isLoading {
-                    VStack(spacing: GatePassTheme.spaceS) {
+                    VStack(spacing: CoreSpacing.s) {
                         ProgressView()
                         Text(gatePassCopy("正在读取历史记录…", "Loading history…", language: language))
-                            .gatePassTypography(GatePassTheme.typographyCaption)
-                            .foregroundStyle(GatePassTheme.textSecondary)
+                            .coreTypography(CoreTypography.caption)
+                            .foregroundStyle(CoreColor.textSecondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if records.isEmpty {
-                    GatePassEmptyStateView(
+                    CoreEmptyStateView(
                         title: gatePassCopy("还没有操作记录", "No history yet", language: language),
                         systemImage: "clock.arrow.circlepath",
                         description: gatePassCopy(
@@ -103,47 +103,47 @@ private struct HistoryRecordRow: View {
         DisclosureGroup(isExpanded: $expanded) {
             VStack(spacing: 0) {
                 ForEach(Array(record.items.enumerated()), id: \.element.id) { index, item in
-                    HStack(spacing: GatePassTheme.spaceM) {
+                    HStack(spacing: CoreSpacing.m) {
                         Image(systemName: item.verified ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(item.verified ? GatePassTheme.semanticSuccess : GatePassTheme.semanticDanger)
+                            .foregroundStyle(item.verified ? CoreColor.success : CoreColor.danger)
                             .frame(width: 16)
 
                         Text(MacSystemPreferencesCatalog.byID[item.settingID]?.title(language: language) ?? item.settingID)
-                            .gatePassTypography(GatePassTheme.typographyCaption)
-                            .foregroundStyle(GatePassTheme.textPrimary)
+                            .coreTypography(CoreTypography.caption)
+                            .foregroundStyle(CoreColor.textPrimary)
                             .lineLimit(1)
 
-                        Spacer(minLength: GatePassTheme.spaceM)
+                        Spacer(minLength: CoreSpacing.m)
 
                         Text(resultText(item))
-                            .gatePassTypography(GatePassTheme.typographyGroupLabel)
-                            .foregroundStyle(item.verified ? GatePassTheme.textSecondary : GatePassTheme.semanticWarning)
+                            .coreTypography(CoreTypography.groupLabel)
+                            .foregroundStyle(item.verified ? CoreColor.textSecondary : CoreColor.warning)
                     }
-                    .padding(.vertical, GatePassTheme.spaceXS)
+                    .padding(.vertical, CoreSpacing.xs)
 
                     if index < record.items.count - 1 {
                         Rectangle()
-                            .fill(GatePassTheme.divider)
-                            .frame(height: GatePassTheme.dividerWidth)
+                            .fill(CoreColor.divider)
+                            .frame(height: CoreMetrics.dividerWidth)
                     }
                 }
             }
         } label: {
-            HStack(spacing: GatePassTheme.spaceM) {
+            HStack(spacing: CoreSpacing.m) {
                 Image(systemName: record.failedCount == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .foregroundStyle(record.failedCount == 0 ? GatePassTheme.semanticSuccess : GatePassTheme.semanticWarning)
+                    .foregroundStyle(record.failedCount == 0 ? CoreColor.success : CoreColor.warning)
 
-                VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                VStack(alignment: .leading, spacing: CoreSpacing.xs) {
                     Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .gatePassTypography(GatePassTheme.typographyControl)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+                        .coreTypography(CoreTypography.control)
+                        .foregroundStyle(CoreColor.textPrimary)
                     Text(gatePassCopy(
                         "修改 \(record.changedCount) 项 · 验证 \(verifiedCount) 项 · 失败 \(record.failedCount) 项",
                         "Changed \(record.changedCount) · Verified \(verifiedCount) · Failed \(record.failedCount)",
                         language: language
                     ))
-                    .gatePassTypography(GatePassTheme.typographyCaption)
-                    .foregroundStyle(GatePassTheme.textSecondary)
+                    .coreTypography(CoreTypography.caption)
+                    .foregroundStyle(CoreColor.textSecondary)
                 }
             }
         }

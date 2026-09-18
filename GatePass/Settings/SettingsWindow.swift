@@ -17,22 +17,20 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            GatePassPageHeader(
+            CorePageHeader(
                 title: gatePassCopy("设置", "Settings", language: language)
             )
 
-            Rectangle()
-                .fill(GatePassTheme.divider)
-                .frame(height: GatePassTheme.dividerWidth)
+            CoreDivider()
 
-            VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
+            VStack(alignment: .leading, spacing: CoreSpacing.l) {
                 settingsTabPicker
                     .frame(maxWidth: .infinity, alignment: .center)
 
                 settingsContent
                     .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .padding(GatePassTheme.contentBodyPadding)
+            .padding(CoreSpacing.l)
             .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -52,8 +50,8 @@ struct SettingsView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .font(GatePassTheme.typeControl)
-        .frame(width: 380, height: GatePassTheme.controlHeightDefault)
+        .font(CoreTypography.controlFont)
+        .frame(width: 380, height: CoreMetrics.controlHeightDefault)
         .accessibilityLabel(gatePassCopy("设置页面", "Settings section", language: language))
     }
 

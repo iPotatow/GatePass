@@ -8,10 +8,10 @@ struct AboutView: View {
     }
 
     var body: some View {
-        VStack(spacing: GatePassTheme.spaceXL) {
-            Spacer(minLength: GatePassTheme.spaceS)
+        VStack(spacing: CoreSpacing.xl) {
+            Spacer(minLength: CoreSpacing.s)
 
-            VStack(spacing: GatePassTheme.spaceM) {
+            VStack(spacing: CoreSpacing.m) {
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .interpolation(.high)
@@ -19,17 +19,16 @@ struct AboutView: View {
                     .frame(width: 88, height: 88)
                     .accessibilityHidden(true)
 
-                VStack(spacing: GatePassTheme.spaceXS) {
+                VStack(spacing: CoreSpacing.xs) {
                     Text(Bundle.main.name)
-                        .gatePassTypography(GatePassTheme.typographyPageTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
-                    Text(gatePassCopy(
+                        .coreTypography(CoreTypography.pageTitle)
+                        .foregroundStyle(CoreColor.textPrimary)
+
+                    CoreSupportingText(gatePassCopy(
                         "版本 \(Bundle.main.version) · 构建 \(Bundle.main.buildVersion)",
                         "Version \(Bundle.main.version) · Build \(Bundle.main.buildVersion)",
                         language: language
                     ))
-                        .gatePassTypography(GatePassTheme.typographyCaption)
-                        .foregroundStyle(GatePassTheme.textSecondary)
                 }
 
                 Text(gatePassCopy(
@@ -37,12 +36,12 @@ struct AboutView: View {
                     "Built for trusted local App workflows.\nRemove quarantine quickly while keeping the recommended app source policy.",
                     language: language
                 ))
-                    .gatePassTypography(GatePassTheme.typographyBody)
-                    .foregroundStyle(GatePassTheme.textSecondary)
+                    .coreTypography(CoreTypography.body)
+                    .foregroundStyle(CoreColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
-            HStack(spacing: GatePassTheme.spaceM) {
+            HStack(spacing: CoreSpacing.m) {
                 Button {
                     NSWorkspace.shared.open(URL(string: "https://github.com/sponsors/iPotatow")!)
                 } label: {
@@ -55,16 +54,16 @@ struct AboutView: View {
                     Label(gatePassCopy("反馈问题", "Report an issue", language: language), systemImage: "bubble.left.and.exclamationmark.bubble.right")
                 }
             }
-            .font(GatePassTheme.typeControl)
+            .font(CoreTypography.controlFont)
             .buttonStyle(.bordered)
 
             Spacer()
 
             Text(gatePassCopy("GatePass 是开源软件", "GatePass is open source", language: language))
-                .gatePassTypography(GatePassTheme.typographyCaption)
-                .foregroundStyle(GatePassTheme.textTertiary)
+                .coreTypography(CoreTypography.caption)
+                .foregroundStyle(CoreColor.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(GatePassTheme.spaceXL)
+        .padding(CoreSpacing.xl)
     }
 }

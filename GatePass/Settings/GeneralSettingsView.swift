@@ -18,17 +18,15 @@ struct GeneralSettingsTab: View {
                     }
                 }
 
-                Text(gatePassCopy(
+                CoreSupportingText(gatePassCopy(
                     "语言更改会立即应用到主窗口和设置。",
                     "Changes apply immediately to the main window and Settings.",
                     language: language
                 ))
-                    .gatePassTypography(GatePassTheme.typographyCaption)
-                    .foregroundStyle(GatePassTheme.textSecondary)
             } header: {
-                Text(gatePassCopy("应用语言", "App Language", language: language))
-                    .gatePassTypography(GatePassTheme.typographyGroupLabel)
-                    .foregroundStyle(GatePassTheme.textSecondary)
+                CoreSettingsSectionHeader(
+                    title: gatePassCopy("应用语言", "App Language", language: language)
+                )
             }
 
             Section {
@@ -37,20 +35,18 @@ struct GeneralSettingsTab: View {
                     isOn: $autoLaunch
                 )
 
-                Text(gatePassCopy(
+                CoreSupportingText(gatePassCopy(
                     "仅在一次处理一个 App 时生效。关闭后，GatePass 只移除隔离属性。",
                     "Only applies when processing one App at a time. When off, GatePass only removes the quarantine attribute.",
                     language: language
                 ))
-                    .gatePassTypography(GatePassTheme.typographyCaption)
-                    .foregroundStyle(GatePassTheme.textSecondary)
             } header: {
-                Text(gatePassCopy("处理完成后", "After Processing", language: language))
-                    .gatePassTypography(GatePassTheme.typographyGroupLabel)
-                    .foregroundStyle(GatePassTheme.textSecondary)
+                CoreSettingsSectionHeader(
+                    title: gatePassCopy("处理完成后", "After Processing", language: language)
+                )
             }
         }
-        .font(GatePassTheme.typeControl)
+        .font(CoreTypography.controlFont)
         .formStyle(.grouped)
     }
 }

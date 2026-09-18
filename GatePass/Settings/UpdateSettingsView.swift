@@ -9,21 +9,20 @@ struct UpdateSettingsTab: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
-            GatePassPanel {
-                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
-                    Text(gatePassCopy("更新来源", "Update source", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+        VStack(alignment: .leading, spacing: CoreSpacing.l) {
+            CorePanel {
+                VStack(alignment: .leading, spacing: CoreSpacing.m) {
+                    CoreSectionHeader(
+                        title: gatePassCopy("更新来源", "Update source", language: language)
+                    )
 
-                    HStack(alignment: .center, spacing: GatePassTheme.spaceL) {
-                        VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                    HStack(alignment: .center, spacing: CoreSpacing.l) {
+                        VStack(alignment: .leading, spacing: CoreSpacing.xs) {
                             Text(gatePassCopy("下载更新时使用的来源", "Source used for update downloads", language: language))
-                                .gatePassTypography(GatePassTheme.typographyBody)
-                                .foregroundStyle(GatePassTheme.textPrimary)
-                            Text(updateSourceDescription)
-                                .gatePassTypography(GatePassTheme.typographyCaption)
-                                .foregroundStyle(GatePassTheme.textSecondary)
+                                .coreTypography(CoreTypography.body)
+                                .foregroundStyle(CoreColor.textPrimary)
+
+                            CoreSupportingText(updateSourceDescription)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
@@ -40,38 +39,35 @@ struct UpdateSettingsTab: View {
                             Text("ghproxy.net")
                                 .tag(GatePassUpdateSource.ghproxyNet)
                         }
-                        .font(GatePassTheme.typeControl)
+                        .font(CoreTypography.controlFont)
                         .pickerStyle(.menu)
                         .frame(width: 220)
                     }
 
                     if updater.updateSource != .github {
-                        Text(gatePassCopy(
+                        CoreSupportingText(gatePassCopy(
                             "版本信息始终从 GitHub 获取；安装包和校验文件优先使用所选镜像，失败时自动回退到 GitHub。",
                             "Release metadata always comes from GitHub. The app archive and checksum prefer the selected mirror and fall back to GitHub if needed.",
                             language: language
                         ))
-                            .gatePassTypography(GatePassTheme.typographyCaption)
-                            .foregroundStyle(GatePassTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
 
-            GatePassPanel {
-                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
-                    Text(gatePassCopy("自动检查", "Automatic checks", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+            CorePanel {
+                VStack(alignment: .leading, spacing: CoreSpacing.m) {
+                    CoreSectionHeader(
+                        title: gatePassCopy("自动检查", "Automatic checks", language: language)
+                    )
 
-                    HStack(spacing: GatePassTheme.spaceL) {
-                        VStack(alignment: .leading, spacing: GatePassTheme.spaceXS) {
+                    HStack(spacing: CoreSpacing.l) {
+                        VStack(alignment: .leading, spacing: CoreSpacing.xs) {
                             Text(gatePassCopy("自动检查 GatePass 更新", "Automatically check for GatePass updates", language: language))
-                                .gatePassTypography(GatePassTheme.typographyBody)
-                                .foregroundStyle(GatePassTheme.textPrimary)
-                            Text(updateDescription)
-                                .gatePassTypography(GatePassTheme.typographyCaption)
-                                .foregroundStyle(GatePassTheme.textSecondary)
+                                .coreTypography(CoreTypography.body)
+                                .foregroundStyle(CoreColor.textPrimary)
+
+                            CoreSupportingText(updateDescription)
                         }
 
                         Spacer()
@@ -82,18 +78,18 @@ struct UpdateSettingsTab: View {
                             Text(gatePassCopy("每周", "Weekly", language: language)).tag(GatePassUpdateFrequency.weekly)
                             Text(gatePassCopy("每月", "Monthly", language: language)).tag(GatePassUpdateFrequency.monthly)
                         }
-                        .font(GatePassTheme.typeControl)
+                        .font(CoreTypography.controlFont)
                         .labelsHidden()
                         .frame(width: 110)
                     }
                 }
             }
 
-            GatePassPanel {
-                VStack(alignment: .leading, spacing: GatePassTheme.spaceM) {
-                    Text(gatePassCopy("最近版本", "Recent releases", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+            CorePanel {
+                VStack(alignment: .leading, spacing: CoreSpacing.m) {
+                    CoreSectionHeader(
+                        title: gatePassCopy("最近版本", "Recent releases", language: language)
+                    )
 
                     releaseHistory
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -101,7 +97,7 @@ struct UpdateSettingsTab: View {
             }
             .frame(maxHeight: .infinity)
 
-            HStack(spacing: GatePassTheme.spaceM) {
+            HStack(spacing: CoreSpacing.m) {
                 Button {
                     updater.checkForUpdates(reason: .manual)
                 } label: {
@@ -124,10 +120,10 @@ struct UpdateSettingsTab: View {
                     Label(gatePassCopy("发布页面", "Release page", language: language), systemImage: "arrow.up.right.square")
                 }
             }
-            .font(GatePassTheme.typeControl)
+            .font(CoreTypography.controlFont)
             .controlSize(.regular)
         }
-        .padding(.top, GatePassTheme.spaceS)
+        .padding(.top, CoreSpacing.s)
     }
 
     private var updateDescription: String {
@@ -165,50 +161,41 @@ struct UpdateSettingsTab: View {
     @ViewBuilder
     private var releaseHistory: some View {
         if updater.releases.isEmpty {
-            VStack(spacing: GatePassTheme.spaceS) {
-                Image(systemName: "shippingbox")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(GatePassTheme.textSecondary)
-                Text(gatePassCopy("暂无版本记录", "No release history", language: language))
-                    .gatePassTypography(GatePassTheme.typographyControl)
-                    .foregroundStyle(GatePassTheme.textPrimary)
-                Text(updater.updateFrequency == .none
-                     ? gatePassCopy("自动检查已关闭。", "Automatic checks are off.", language: language)
-                     : gatePassCopy("点按“检查更新”获取最新信息。", "Click “Check for updates” to fetch the latest information.", language: language))
-                    .gatePassTypography(GatePassTheme.typographyCaption)
-                    .foregroundStyle(GatePassTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            CoreEmptyStateView(
+                title: gatePassCopy("暂无版本记录", "No release history", language: language),
+                systemImage: "shippingbox",
+                description: updater.updateFrequency == .none
+                    ? gatePassCopy("自动检查已关闭。", "Automatic checks are off.", language: language)
+                    : gatePassCopy("点按“检查更新”获取最新信息。", "Click “Check for updates” to fetch the latest information.", language: language)
+            )
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: GatePassTheme.spaceL) {
+                LazyVStack(alignment: .leading, spacing: CoreSpacing.l) {
                     ForEach(Array(updater.releases.prefix(3))) { release in
-                        VStack(alignment: .leading, spacing: GatePassTheme.spaceS) {
+                        VStack(alignment: .leading, spacing: CoreSpacing.s) {
                             Text(release.tagName)
-                                .gatePassTypography(GatePassTheme.typographySectionTitle)
-                                .foregroundStyle(GatePassTheme.textPrimary)
+                                .coreTypography(CoreTypography.sectionTitle)
+                                .foregroundStyle(CoreColor.textPrimary)
 
                             if let notes = release.releaseNotes {
                                 Text(notes)
-                                    .gatePassTypography(GatePassTheme.typographyBody)
-                                    .foregroundStyle(GatePassTheme.textSecondary)
+                                    .coreTypography(CoreTypography.body)
+                                    .foregroundStyle(CoreColor.textSecondary)
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else {
                                 Text(gatePassCopy("无法显示此版本的发布说明。", "Unable to display the release notes.", language: language))
-                                    .gatePassTypography(GatePassTheme.typographyBody)
-                                    .foregroundStyle(GatePassTheme.textSecondary)
+                                    .coreTypography(CoreTypography.body)
+                                    .foregroundStyle(CoreColor.textSecondary)
                             }
                         }
 
                         if release.id != updater.releases.prefix(3).last?.id {
-                            Rectangle()
-                                .fill(GatePassTheme.divider)
-                                .frame(height: GatePassTheme.dividerWidth)
+                            CoreDivider()
                         }
                     }
                 }
-                .padding(GatePassTheme.spaceM)
+                .padding(CoreSpacing.m)
             }
         }
     }

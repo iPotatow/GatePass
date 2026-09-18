@@ -29,7 +29,7 @@ struct GatePassApp: App {
         .windowToolbarStyle(.unifiedCompact)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
-        .defaultSize(width: GatePassTheme.windowWidth, height: GatePassTheme.windowHeight)
+        .defaultSize(width: GatePassLayout.windowWidth, height: GatePassLayout.windowHeight)
     }
 }
 
@@ -55,43 +55,43 @@ private struct GatePassNoUpdateView: View {
     }
 
     var body: some View {
-        VStack(spacing: GatePassTheme.spaceL) {
+        VStack(spacing: CoreSpacing.l) {
             Image(systemName: updater.updateError == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(updater.updateError == nil ? GatePassTheme.semanticSuccess : GatePassTheme.semanticWarning)
+                .foregroundStyle(updater.updateError == nil ? CoreColor.success : CoreColor.warning)
 
-            VStack(spacing: GatePassTheme.spaceXS) {
+            VStack(spacing: CoreSpacing.xs) {
                 if let updateError = updater.updateError {
                     Text(gatePassCopy("更新检查失败", "Update check failed", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+                        .coreTypography(CoreTypography.sectionTitle)
+                        .foregroundStyle(CoreColor.textPrimary)
                     Text(updateError)
-                        .gatePassTypography(GatePassTheme.typographyBody)
-                        .foregroundStyle(GatePassTheme.textSecondary)
+                        .coreTypography(CoreTypography.body)
+                        .foregroundStyle(CoreColor.textSecondary)
                         .multilineTextAlignment(.center)
                         .textSelection(.enabled)
                 } else {
                     Text(gatePassCopy("已是最新版本", "You're up to date", language: language))
-                        .gatePassTypography(GatePassTheme.typographySectionTitle)
-                        .foregroundStyle(GatePassTheme.textPrimary)
+                        .coreTypography(CoreTypography.sectionTitle)
+                        .foregroundStyle(CoreColor.textPrimary)
                     Text(gatePassCopy(
                         "GatePass \(updater.currentVersion) 已经是当前更新源上的最新版本。",
                         "GatePass \(updater.currentVersion) is already the latest release from the selected update source.",
                         language: language
                     ))
-                        .gatePassTypography(GatePassTheme.typographyBody)
-                        .foregroundStyle(GatePassTheme.textSecondary)
+                        .coreTypography(CoreTypography.body)
+                        .foregroundStyle(CoreColor.textSecondary)
                 }
             }
 
             Button(gatePassCopy("关闭", "Close", language: language)) {
                 dismiss()
             }
-            .font(GatePassTheme.typeControl)
+            .font(CoreTypography.controlFont)
             .keyboardShortcut(.defaultAction)
         }
         .frame(width: 500, height: 200)
-        .padding(GatePassTheme.spaceXL)
+        .padding(CoreSpacing.xl)
     }
 }
 

@@ -20,12 +20,12 @@ struct GatePassRootView: View {
         HStack(spacing: 0) {
             sidebar
                 .frame(
-                    minWidth: GatePassTheme.sidebarWidth,
-                    maxWidth: GatePassTheme.sidebarWidth,
+                    minWidth: GatePassLayout.sidebarWidth,
+                    maxWidth: GatePassLayout.sidebarWidth,
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
-                .background(GatePassTheme.sidebarBackground)
+                .background(CoreColor.sidebarBackground)
                 .clipped()
                 .layoutPriority(1)
 
@@ -37,27 +37,27 @@ struct GatePassRootView: View {
                     alignment: .topLeading
                 )
                 .background(
-                    GatePassTheme.contentBackground,
-                    in: RoundedRectangle(cornerRadius: GatePassTheme.contentRadius, style: .continuous)
+                    CoreColor.contentBackground,
+                    in: RoundedRectangle(cornerRadius: CoreRadius.content, style: .continuous)
                 )
                 .clipShape(
-                    RoundedRectangle(cornerRadius: GatePassTheme.contentRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: CoreRadius.content, style: .continuous)
                 )
-                .gatePassContentSurfaceShadow()
+                .coreContentSurfaceShadow()
                 .padding(
                     EdgeInsets(
-                        top: GatePassTheme.contentInset,
+                        top: GatePassLayout.contentSurfaceInset,
                         leading: 0,
-                        bottom: GatePassTheme.contentInset,
-                        trailing: GatePassTheme.contentInset
+                        bottom: GatePassLayout.contentSurfaceInset,
+                        trailing: GatePassLayout.contentSurfaceInset
                     )
                 )
         }
         .ignoresSafeArea(.container, edges: .top)
-        .background(GatePassTheme.windowBackground)
+        .background(CoreColor.windowBackground)
         .frame(
-            minWidth: GatePassTheme.windowWidth,
-            minHeight: GatePassTheme.windowHeight,
+            minWidth: GatePassLayout.windowWidth,
+            minHeight: GatePassLayout.windowHeight,
             alignment: .topLeading
         )
     }
@@ -78,7 +78,7 @@ struct GatePassRootView: View {
         VStack(spacing: 0) {
             brand
 
-            VStack(spacing: GatePassTheme.spaceXS) {
+            VStack(spacing: CoreSpacing.xs) {
                 sidebarButton(
                     section: .appRelease,
                     title: gatePassCopy("APP放行", "App Access", language: language),
@@ -97,32 +97,32 @@ struct GatePassRootView: View {
                     systemImage: "gearshape.fill"
                 )
             }
-            .padding(.top, GatePassTheme.spaceS)
+            .padding(.top, CoreSpacing.s)
 
-            Spacer(minLength: GatePassTheme.spaceXL)
+            Spacer(minLength: CoreSpacing.xl)
         }
-        .padding(.top, GatePassTheme.sidebarTitlebarClearance)
-        .padding(.horizontal, GatePassTheme.sidebarPadding)
-        .padding(.bottom, GatePassTheme.sidebarPadding)
+        .padding(.top, GatePassLayout.sidebarTitlebarClearance)
+        .padding(.horizontal, GatePassLayout.sidebarPadding)
+        .padding(.bottom, GatePassLayout.sidebarPadding)
     }
 
     private var brand: some View {
-        HStack(spacing: GatePassTheme.spaceS) {
+        HStack(spacing: CoreSpacing.s) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: GatePassTheme.brandLogoSize, height: GatePassTheme.brandLogoSize)
+                .frame(width: GatePassLayout.brandLogoSize, height: GatePassLayout.brandLogoSize)
                 .accessibilityHidden(true)
 
             Text("GatePass")
-                .gatePassTypography(GatePassTheme.typographyBrand)
-                .foregroundStyle(GatePassTheme.textPrimary)
+                .coreTypography(CoreTypography.brand)
+                .foregroundStyle(CoreColor.textPrimary)
 
             Spacer(minLength: 0)
         }
-        .frame(height: GatePassTheme.brandHeight)
-        .padding(.horizontal, GatePassTheme.spaceS)
+        .frame(height: GatePassLayout.brandHeight)
+        .padding(.horizontal, CoreSpacing.s)
     }
 
     private func sidebarButton(
@@ -136,15 +136,15 @@ struct GatePassRootView: View {
             selection = section
             focusedSection = section
         } label: {
-            HStack(spacing: GatePassTheme.spaceS) {
+            HStack(spacing: CoreSpacing.s) {
                 Image(systemName: systemImage)
-                    .font(.system(size: GatePassTheme.navigationIconSize, weight: .medium))
-                    .frame(width: GatePassTheme.navigationIconSize)
-                    .foregroundStyle(selected ? GatePassTheme.accent : GatePassTheme.textSecondary)
+                    .font(.system(size: CoreMetrics.controlIconSize, weight: .medium))
+                    .frame(width: CoreMetrics.controlIconSize)
+                    .foregroundStyle(selected ? CoreColor.accent : CoreColor.textSecondary)
 
                 Text(title)
-                    .gatePassTypography(GatePassTheme.typographyControl)
-                    .foregroundStyle(GatePassTheme.textPrimary)
+                    .coreTypography(CoreTypography.control)
+                    .foregroundStyle(CoreColor.textPrimary)
 
                 Spacer(minLength: 0)
             }
@@ -152,53 +152,14 @@ struct GatePassRootView: View {
         }
         .focused($focusedSection, equals: section)
         .buttonStyle(
-            GatePassSidebarButtonStyle(
+            CoreSidebarButtonStyle(
                 isSelected: selected,
-                isFocused: focusedSection == section
+                isFocused: focusedSection == section,
+                height: GatePassLayout.navigationHeight,
+                horizontalPadding: GatePassLayout.navigationHorizontalPadding,
+                cornerRadius: CoreRadius.row
             )
         )
         .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-private struct GatePassSidebarButtonStyle: ButtonStyle {
-    let isSelected: Bool
-    let isFocused: Bool
-
-    @State private var isHovered = false
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, GatePassTheme.navigationHorizontalPadding)
-            .frame(height: GatePassTheme.navigationHeight)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                isSelected ? GatePassTheme.selectionBackground : Color.clear,
-                in: RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
-                    .fill(stateOverlay(isPressed: configuration.isPressed))
-            }
-            .overlay {
-                if isFocused {
-                    RoundedRectangle(cornerRadius: GatePassTheme.rowRadius, style: .continuous)
-                        .stroke(GatePassTheme.focusRing, lineWidth: GatePassTheme.focusRingWidth)
-                        .padding(-GatePassTheme.focusRingOffset)
-                }
-            }
-            .opacity(isEnabled ? 1 : GatePassTheme.disabledOpacity)
-            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: configuration.isPressed)
-            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: isHovered)
-            .animation(reduceMotion ? nil : GatePassTheme.motionFast, value: isFocused)
-            .onHover { isHovered = $0 }
-    }
-
-    private func stateOverlay(isPressed: Bool) -> Color {
-        if isPressed { return GatePassTheme.pressedOverlay }
-        if isHovered && !isSelected { return GatePassTheme.hoverOverlay }
-        return .clear
     }
 }
